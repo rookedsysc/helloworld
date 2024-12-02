@@ -87,4 +87,64 @@ class MyPriorityQueueTest {
         // then
         assert pq.size() == 0;
     }
+
+    @Test
+    @DisplayName("clear() 했다가 offer() 하면 size()가 1이 되어야 한다.")
+    void testClearOffer() {
+        // given
+        MyPriorityQueue<TestNode> pq = new MyPriorityQueue<>();
+        pq.offer(node1);
+        pq.offer(node2);
+        pq.offer(node3);
+        pq.clear();
+
+        // when
+        pq.offer(node1);
+
+        // then
+        assert pq.size() == 1;
+    }
+
+
+    @Test
+    @DisplayName("다수의 데이터를 넣어도 순서가 보장되는지 확인")
+    void testOfferPollMany() {
+        // given
+        MyPriorityQueue<TestNode> pq = new MyPriorityQueue<>();
+        pq.offer(new TestNode("테스트1", 1));
+        pq.offer(new TestNode("테스트2", 4));
+        pq.offer(new TestNode("테스트3", 7));
+        pq.offer(new TestNode("테스트4", 2));
+        pq.offer(new TestNode("테스트5", 3));
+        pq.offer(new TestNode("테스트6", 5));
+        pq.offer(new TestNode("테스트7", 1));
+        pq.offer(new TestNode("테스트8", 2));
+        pq.offer(new TestNode("테스트9", 3));
+        pq.offer(new TestNode("테스트10", 6));
+
+        // when
+        TestNode pollNode1 = pq.poll();
+        TestNode pollNode2 = pq.poll();
+        TestNode pollNode3 = pq.poll();
+        TestNode pollNode4 = pq.poll();
+        TestNode pollNode5 = pq.poll();
+        TestNode pollNode6 = pq.poll();
+        TestNode pollNode7 = pq.poll();
+        TestNode pollNode8 = pq.poll();
+        TestNode pollNode9 = pq.poll();
+        TestNode pollNode10 = pq.poll();
+
+        // then
+        assert pollNode1.getPriority() == 7;
+        assert pollNode2.getPriority() == 6;
+        assert pollNode3.getPriority() == 5;
+        assert pollNode4.getPriority() == 4;
+        assert pollNode5.getPriority() == 3;
+        assert pollNode6.getPriority() == 3;
+        assert pollNode7.getPriority() == 2;
+        assert pollNode8.getPriority() == 2;
+        assert pollNode9.getPriority() == 1;
+        assert pollNode10.getPriority() == 1;
+        assert pq.size() == 0;
+    }
 }
