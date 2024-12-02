@@ -56,6 +56,23 @@ class MyPriorityQueueTest {
     }
 
     @Test
+    @DisplayName("3개의 값을 Offer할 경우 가장 Priority가 높은 값이 Peek되어야 한다.")
+    void testOfferPeek() {
+        // given
+        MyPriorityQueue<TestNode> pq = new MyPriorityQueue<>();
+        pq.offer(node1);
+        pq.offer(node2);
+        pq.offer(node3);
+
+        // when
+        TestNode peekNode = pq.peek();
+
+        // then
+        assert peekNode.getBrandName().equals("LG");
+        assert pq.size() == 3;
+    }
+
+    @Test
     @DisplayName("clear() 메서드 실행시 size()가 0이 되어야 한다.")
     void testClear() {
         // given
