@@ -56,7 +56,7 @@ public class MyPriorityQueue<E extends Comparable> implements Queue<E> {
 
     @Override
     public E peek() {
-        return (E) this.arr[this.arrSize - 1];
+        return (E) this.arr[this.arrLength - 1];
     }
 
     @Override
