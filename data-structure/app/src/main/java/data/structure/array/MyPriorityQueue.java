@@ -23,8 +23,8 @@ public class MyPriorityQueue<E extends Comparable> implements Queue<E> {
     private void add(E value) {
         this.arrResize();
         int index = findIndex(value);
-        for (int i = index + 1; this.arrLength > i; i++) {
-            this.arr[i + 1] = this.arr[i];
+        for (int i = this.arrLength; index < i; i--) {
+            this.arr[i] = this.arr[i - 1];
         }
         this.arr[index] = value;
     }
