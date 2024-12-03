@@ -28,6 +28,7 @@ public class XmlRestClient {
         RestClient restClient = RestClient.builder()
             .requestFactory(new HttpComponentsClientHttpRequestFactory())
             .baseUrl("https://apis.data.go.kr")
+            // 지정 안해주면 04 http route error 발생
             .defaultHeader("Content-Type", MediaType.APPLICATION_XML_VALUE)
             .defaultHeader("Accept", MediaType.APPLICATION_XML_VALUE)
             .defaultHeader("Accept-Charset", StandardCharsets.UTF_8.name())
