@@ -18,7 +18,7 @@ import java.util.List;
  */
 @Service
 @RequiredArgsConstructor
-public class JsonAnnotationRestClient {
+public class JsonRestClient {
 
     private final ApiKey apiKey;
 

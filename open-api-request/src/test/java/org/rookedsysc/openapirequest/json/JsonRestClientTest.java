@@ -12,16 +12,16 @@ import java.util.List;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 @SpringBootTest
-class JsonAnnotationRestClientTest {
+class JsonRestClientTest {
 
     @Autowired
-    private JsonAnnotationRestClient jsonAnnotationRestClient;
+    private JsonRestClient jsonRestClient;
 
     @Test
     @DisplayName("Annotaiton API 호출 정상적으로 잘 되는지 테스트")
     void getSignalJsonAnnotationTest() {
         // given // when
-        List<SignalJsonAnnotation> responses = jsonAnnotationRestClient.getSignalJsonAnnotation();
+        List<SignalJsonAnnotation> responses = jsonRestClient.getSignalJsonAnnotation();
 
         // then
         assertThat(responses.size()).isEqualTo(10);
@@ -31,7 +31,7 @@ class JsonAnnotationRestClientTest {
     @DisplayName("API 호출 정상적으로 잘 되는지 테스트")
     void getSignalJsonSerializableTest() {
         // given // when
-        List<SignalJsonSerializable> responses = jsonAnnotationRestClient.getSignalJsonSerializable();
+        List<SignalJsonSerializable> responses = jsonRestClient.getSignalJsonSerializable();
 
         // then
         assertThat(responses.size()).isEqualTo(10);
