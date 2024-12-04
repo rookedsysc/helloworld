@@ -3,6 +3,7 @@ package org.rookedsysc.openapirequest.json;
 import lombok.RequiredArgsConstructor;
 import org.rookedsysc.openapirequest.ApiKey;
 import org.rookedsysc.openapirequest.json.dto.SignalJsonAnnotation;
+import org.rookedsysc.openapirequest.json.dto.SignalJsonSerializable;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -40,4 +41,25 @@ public class JsonAnnotationRestClient {
 
         return signalJsonAnnotation;
     }
+
+    public List<SignalJsonSerializable> getSignalJsonSerializable() {
+        RestClient restClient = RestClient.builder()
+            .baseUrl("https://t-data.seoul.go.kr")
+            .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
+            .defaultHeader("Accept", MediaType.APPLICATION_JSON_VALUE)
+            .defaultHeader("Accept-Charset", StandardCharsets.UTF_8.name())
+            .build();
+
+        String encodedApiKey = URLEncoder.encode(apiKey.signal(), StandardCharsets.UTF_8);
+
+        List<SignalJsonSerializable> signalJsonAnnotation = restClient.get()
+            .uri("/apig/apiman-gateway/tapi/v2xSignalPhaseTimingInformation/1.0?apikey=" + apiKey.signal() + "&pageNo=1&numOfRows=10"
+            )
+            .retrieve()
+            .body(new ParameterizedTypeReference<List<SignalJsonSerializable>>() {
+            });
+
+        return signalJsonAnnotation;
+    }
+
 }
