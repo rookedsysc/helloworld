@@ -1,0 +1,8 @@
+spring:
+  profiles:
+    include:
+      - db
+
+token:
+  secret: "rokybackendtechnicaltestrokybackendtechnicaltestrokybackendtechnicaltestrokybackendtechnicaltest"
+  expired-seconds: 7200 # 2 hours
