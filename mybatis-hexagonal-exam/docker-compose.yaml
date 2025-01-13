@@ -1,0 +1,10 @@
+services:
+  db:
+    image: mysql:latest
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      MYSQL_ROOT_PASSWORD: df159357
+      MYSQL_DATABASE: mybatis
+    ports:
+      - "6033:3306"
