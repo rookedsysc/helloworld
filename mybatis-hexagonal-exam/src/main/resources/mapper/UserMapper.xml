@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.rookedsysc.mybatishexagonalexam.adapter.out.UserMapper">
+
+    <!-- Insert User -->
+    <insert id="save" parameterType="org.rookedsysc.mybatishexagonalexam.adapter.out.entity.UserEntity" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user (email, password)
+        VALUES (#{email}, #{password})
+    </insert>
+
+    <!-- Select User by Email -->
+    <select id="findByEmail" resultType="org.rookedsysc.mybatishexagonalexam.adapter.out.entity.UserEntity">
+        SELECT * FROM user WHERE email = #{email} LIMIT 1
+    </select>
+
+</mapper>

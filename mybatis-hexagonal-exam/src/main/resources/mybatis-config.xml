@@ -12,4 +12,7 @@
             </dataSource>
         </environment>
     </environments>
+    <mappers>
+        <mapper resource="org/rookedsysc/mybatishexagonalexam/adapter/out/UserMapper.xml"/>
+    </mappers>
 </configuration>
