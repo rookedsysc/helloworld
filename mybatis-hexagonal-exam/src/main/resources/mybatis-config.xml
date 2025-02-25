@@ -13,6 +13,7 @@
         </environment>
     </environments>
     <mappers>
+        <mapper resource="org/rookedsysc/mybatishexagonalexam/adapter/out/PostMapper.xml"/>
         <mapper resource="org/rookedsysc/mybatishexagonalexam/adapter/out/UserMapper.xml"/>
     </mappers>
 </configuration>

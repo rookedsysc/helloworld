@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.rookedsysc.mybatishexagonalexam.adapter.out.PostMapper">
+
+    <!-- Insert Post -->
+    <insert id="save" parameterType="org.rookedsysc.mybatishexagonalexam.adapter.out.entity.PostEntity" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO post (user_id, title, content)
+        VALUES (#{userId}, #{title}, #{content})
+    </insert>
+
+    <!-- last uploaded post by user id -->
+    <select id="findLastPostByUserId" parameterType="long" resultType="long">
+        SELECT id
+        FROM post
+        WHERE user_id = #{userId}
+        ORDER BY id desc
+        LIMIT 1
+    </select>
+
+</mapper>
