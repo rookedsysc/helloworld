@@ -9,22 +9,32 @@ import org.rookedsysc.mybatishexagonalexam.post.application.port.out.PostUploadP
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
-@Transactional
 @RequiredArgsConstructor
 public class PostUploadService implements PostUploadUsecase {
 
     private final PostUploadPort postUploadPort;
     private final RedisTemplate<String, Integer> redisTemplate;
+    private final TransactionTemplate transactionTemplate;
 
     @Override
     public long upload(PostCommand command) {
-        PostEntity entity = PostEntityConverter.toEntity(command);
+        return transactionTemplate.execute(status -> {
+            try {
+                PostEntity entity = PostEntityConverter.toEntity(command);
 
-        redisTemplate.opsForValue().setIfAbsent("post", 0);
-        redisTemplate.opsForValue().increment("post", 1);
+                redisTemplate.opsForValue().setIfAbsent("post", 0);
+                redisTemplate.opsForValue().increment("post", 1);
 
-        return postUploadPort.upload(entity);
+                return postUploadPort.upload(entity);
+            } catch (Exception e) {
+                redisTemplate.opsForValue().setIfAbsent("post", 0);
+                redisTemplate.opsForValue().decrement("post", 1);
+                status.setRollbackOnly();
+                throw new RuntimeException(e);
+            }
+        });
     }
 }
