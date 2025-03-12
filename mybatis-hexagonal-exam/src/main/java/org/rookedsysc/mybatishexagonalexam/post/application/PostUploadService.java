@@ -30,8 +30,6 @@ public class PostUploadService implements PostUploadUsecase {
 
                 return postUploadPort.upload(entity);
             } catch (Exception e) {
-                redisTemplate.opsForValue().setIfAbsent("post", 0);
-                redisTemplate.opsForValue().decrement("post", 1);
                 status.setRollbackOnly();
                 throw new RuntimeException(e);
             }
