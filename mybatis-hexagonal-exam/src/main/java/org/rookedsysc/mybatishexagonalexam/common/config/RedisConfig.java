@@ -9,13 +9,11 @@ import org.springframework.data.redis.serializer.GenericToStringSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import javax.sql.DataSource;
 
 @Configuration
 @RequiredArgsConstructor
-@EnableTransactionManagement
 public class RedisConfig {
 
     @Bean
@@ -29,7 +27,7 @@ public class RedisConfig {
         // Value Serializer 설정
         template.setValueSerializer(new GenericToStringSerializer<>(Integer.class));
 
-//        template.setEnableTransactionSupport(true);
+        template.setEnableTransactionSupport(true);
 
         return template;
     }
