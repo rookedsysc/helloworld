@@ -16,7 +16,7 @@ public class PostUploadService implements PostUploadUsecase {
 
     @Override
     public long upload(PostCommand command) {
-        PostEntity entity = PostEntityConverter.toEntity(command)
+        PostEntity entity = PostEntityConverter.toEntity(command);
         return postUploadPort.upload(entity);
     }
 }

@@ -5,7 +5,7 @@ import org.rookedsysc.mybatishexagonalexam.adapter.out.entity.UserEntity;
 
 @Mapper
 public interface UserMapper {
-    int save(UserEntity userEntity);
+    long save(UserEntity userEntity);
 
     UserEntity findByEmail(String email);
 }
