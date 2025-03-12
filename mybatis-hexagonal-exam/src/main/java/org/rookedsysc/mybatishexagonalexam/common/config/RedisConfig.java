@@ -7,9 +7,11 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericToStringSerializer;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @Configuration
 @RequiredArgsConstructor
+@EnableTransactionManagement
 public class RedisConfig {
 
     @Bean
@@ -22,6 +24,8 @@ public class RedisConfig {
 
         // Value Serializer 설정
         template.setValueSerializer(new GenericToStringSerializer<>(Integer.class));
+
+        template.setEnableTransactionSupport(true);
 
         return template;
     }
