@@ -10,13 +10,4 @@
         VALUES (#{userId}, #{title}, #{content})
     </insert>
 
-    <!-- last uploaded post by user id -->
-    <select id="findLastPostByUserId" parameterType="long" resultType="long">
-        SELECT id
-        FROM post
-        WHERE user_id = #{userId}
-        ORDER BY id desc
-        LIMIT 1
-    </select>
-
 </mapper>
