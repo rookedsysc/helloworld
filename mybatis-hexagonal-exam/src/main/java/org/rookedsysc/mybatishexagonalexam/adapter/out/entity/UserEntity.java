@@ -2,9 +2,11 @@ package org.rookedsysc.mybatishexagonalexam.adapter.out.entity;
 
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
 
 @Getter
 public class UserEntity {
+    @Setter
     private Long id;
     private String email;
     private String password;
