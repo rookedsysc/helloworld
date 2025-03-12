@@ -8,3 +8,10 @@ services:
       MYSQL_DATABASE: mybatis
     ports:
       - "6033:3306"
+  redis:
+    image: redis:latest
+    container_name: redis
+    environment:
+      REDIS_PASSWORD: df159357
+    ports:
+      - "6379:6379"

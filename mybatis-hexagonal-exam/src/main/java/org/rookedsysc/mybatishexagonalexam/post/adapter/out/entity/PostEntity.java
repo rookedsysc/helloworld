@@ -12,6 +12,7 @@ public class PostEntity {
 
     @Builder
     public PostEntity(Long userId, String title, String content) {
+        this.userId = userId;
         this.title = title;
         this.content = content;
     }

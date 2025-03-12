@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS post (
     user_id INT NOT NULL,
     title VARCHAR(255) NOT NULL,
     content TEXT,
-    FOREIGN KEY (user_id) REFERENCES user(id)
+    FOREIGN KEY (user_id) REFERENCES user(id),
+    UNIQUE (title)
 );
 
 CREATE TABLE IF NOT EXISTS comment (
