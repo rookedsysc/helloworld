@@ -13,8 +13,8 @@ public class AuthAdapter implements SignUpPort {
 
     @Override
     public UserEntity signUp(UserEntity userEntity) {
-        userMapper.save(userEntity);
-        userEntity = userMapper.findByEmail(userEntity.getEmail());
+        Long id = userMapper.save(userEntity);
+        userEntity.setId(id);
         return userEntity;
     }
 }
