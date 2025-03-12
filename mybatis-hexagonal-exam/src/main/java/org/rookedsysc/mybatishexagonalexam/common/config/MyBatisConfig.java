@@ -11,7 +11,7 @@ import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import javax.sql.DataSource;
 
 @Configuration
-@MapperScan(basePackages = "org.rookedsysc.mybatishexagonalexam")  // Mapper Scan 경로
+@MapperScan(basePackages = {"org.rookedsysc.mybatishexagonalexam.auth.adapter.out", "org.rookedsysc.mybatishexagonalexam.post.adapter.out"})  // Mapper Scan 경로
 public class MyBatisConfig {
 
     @Bean

@@ -13,10 +13,8 @@ public class PostAdapter implements PostUploadPort {
 
     @Override
     public long upload(PostEntity entity) {
-        postMapper.save(entity);
+        long id = postMapper.save(entity);
 
-        long lastUploadedId = postMapper.findLastPostByUserId(entity.getUserId());
-
-        return lastUploadedId;
+        return id;
     }
 }

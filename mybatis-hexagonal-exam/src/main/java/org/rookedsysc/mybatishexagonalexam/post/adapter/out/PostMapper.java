@@ -5,7 +5,5 @@ import org.rookedsysc.mybatishexagonalexam.post.adapter.out.entity.PostEntity;
 
 @Mapper
 public interface PostMapper {
-    void save(PostEntity post);
-
-    long findLastPostByUserId(long userId);
+    long save(PostEntity post);
 }
