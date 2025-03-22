@@ -1,0 +1,36 @@
+services:
+  mysql-primary:
+    image: mysql:latest
+    container_name: mysql-primary
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 12345678
+      MYSQL_DATABASE: bank
+    volumes:
+      - ./infra/db/primary/conf/my.cnf:/etc/mysql/my.cnf
+      - ./infra/db/certs:/etc/mysql/ssl
+    ports:
+      - "3306:3306"
+    networks:
+      - mysql-network
+
+  mysql-secondary:
+    image: mysql:latest
+    container_name: mysql-secondary
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: 12345678
+      MYSQL_DATABASE: bank
+    volumes:
+      - ./infra/db/secondary/conf/my.cnf:/etc/mysql/my.cnf
+      - ./infra/db/certs:/etc/mysql/ssl
+    ports:
+      - "3307:3306"
+    networks:
+      - mysql-network
+    depends_on:
+      - mysql-primary
+
+networks:
+  mysql-network:
+    driver: bridge
