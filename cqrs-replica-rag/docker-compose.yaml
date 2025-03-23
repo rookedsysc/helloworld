@@ -31,6 +31,26 @@ services:
     depends_on:
       - mysql-primary
 
+  grafana:
+    image: bitnami/grafana:latest
+    container_name: grafana
+    ports:
+      - "4885:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=df159357
+    networks:
+      - mysql-network
+
+  prometheus:
+    ports:
+      - "9090:9090"
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./infra/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml
+    networks:
+      - mysql-network
 networks:
   mysql-network:
     driver: bridge
