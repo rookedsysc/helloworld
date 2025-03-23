@@ -1,0 +1,4 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+  scrape_timeout: 4s  # evaluation interval보다 크면 안됨
