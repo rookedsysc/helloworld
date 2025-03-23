@@ -14,6 +14,23 @@ services:
     networks:
       - mysql-network
 
+  primary-exporter:
+    image: prom/mysqld-exporter:latest
+    container_name: primary-exporter
+    restart: always
+    environment:
+      - DATA_SOURCE_NAME="root:12345678@(mysql-primary:3306)/"
+    command:
+      - "--mysqld.username=root:12345678"
+      - "--mysqld.address=mysql-primary:3306"
+      - "--collect.perf_schema_eventsstatements"
+    ports:
+      - "9104:9104"
+    networks:
+      - mysql-network
+    depends_on:
+      - mysql-primary
+
   mysql-secondary:
     image: mysql:latest
     container_name: mysql-secondary
@@ -30,6 +47,23 @@ services:
       - mysql-network
     depends_on:
       - mysql-primary
+
+  secondary-exporter:
+    image: prom/mysqld-exporter:latest
+    container_name: secondary-exporter
+    restart: always
+    environment:
+      - DATA_SOURCE_NAME="root:12345678@(mysql-secondary:3306)/"
+    command:
+      - "--mysqld.username=root:12345678"
+      - "--mysqld.address=mysql-secondary:3306"
+      - "--collect.perf_schema_eventsstatements"
+    ports:
+      - "9105:9104"
+    networks:
+      - mysql-network
+    depends_on:
+      - mysql-secondary
 
   grafana:
     image: bitnami/grafana:latest
@@ -51,6 +85,10 @@ services:
       - ./infra/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml
     networks:
       - mysql-network
+    depends_on:
+      - primary-exporter
+      - secondary-exporter
+
 networks:
   mysql-network:
     driver: bridge
