@@ -11,9 +11,18 @@ public class PostService {
     private final PostRepository postRepository;
 
     @CommandService
-    public Post createPost(String title, String content) {
+    public PostWriteResponse createPost(String title, String content) {
         Post post = Post.builder().title(title).content(content).build();
-        return postRepository.save(post);
+
+        int count = postRepository.countAllBy();
+
+        PostWriteResponse response = PostWriteResponse.builder()
+            .id(postRepository.save(post).getId())
+            .title(title)
+            .content(content)
+            .count(count)
+            .build();
+        return response;
     }
 
     @QueryService

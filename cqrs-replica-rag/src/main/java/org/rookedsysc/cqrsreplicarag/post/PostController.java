@@ -14,7 +14,7 @@ public class PostController {
     private final PostService postService;
 
     @PostMapping
-    public Post createPost(String title, String content) {
+    public PostWriteResponse createPost(String title, String content) {
         return postService.createPost(title, content);
     }
 
