@@ -23,7 +23,7 @@ services:
     command:
       - "--mysqld.username=root:12345678"
       - "--mysqld.address=mysql-primary:3306"
-      - "--collect.perf_schema_eventsstatements"
+      - "--collect.perf_schema.eventsstatements"
     ports:
       - "9104:9104"
     networks:
@@ -57,7 +57,7 @@ services:
     command:
       - "--mysqld.username=root:12345678"
       - "--mysqld.address=mysql-secondary:3306"
-      - "--collect.perf_schema_eventsstatements"
+      - "--collect.perf_schema.eventsstatements"
     ports:
       - "9105:9104"
     networks:
