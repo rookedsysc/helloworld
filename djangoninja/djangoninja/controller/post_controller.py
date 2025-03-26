@@ -1,5 +1,7 @@
+from re import A
 from djangoninja.controller.dto.post_command import PostCommand
 from djangoninja.controller.dto.post_response import PostResponse
+from djangoninja.controller.dto.post_update_command import PostUpdateCommand
 from djangoninja.service.post_service import PostService
 from ninja import Router
 
@@ -19,3 +21,7 @@ def get_all(request) -> PostResponse :
 @router.get("/{id}")
 def get_detail(request, id: int) -> PostResponse :
     return post_service.get_detail(id)
+  
+@router.put("/{id}")
+def update_post(request, id: int, post_command: PostUpdateCommand) -> None :
+    post_service.update(id, post_command)

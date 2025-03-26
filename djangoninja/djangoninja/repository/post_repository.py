@@ -54,6 +54,33 @@ class PostRepository :
     connection.close()
     
     return post
+
+  def update(self, post: Post) -> None :
+    db = DatabaseConnection()
+    connection = db.get_connection()
+    cursor = connection.cursor()
+
+    fields = []
+    values = []
+
+    if post.title is not None:
+      fields.append("title=%s")
+      values.append(post.title)
+    if post.content is not None:
+      fields.append("content=%s")
+      values.append(post.content)
+    if post.updated_at is not None:
+      fields.append("updated_at=%s")
+      values.append(post.updated_at)
+
+    values.append(post.id)
+
+    query = f"UPDATE djangoninja_post SET {', '.join(fields)} WHERE id=%s"
+    cursor.execute(query, values)
+    connection.commit()
+
+    cursor.close()
+    connection.close()
   
   @staticmethod
   def ensure_post_table_exists():

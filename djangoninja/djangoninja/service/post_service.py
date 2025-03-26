@@ -1,5 +1,6 @@
 from djangoninja.controller.dto.post_command import PostCommand
 from djangoninja.controller.dto.post_response import PostResponse
+from djangoninja.controller.dto.post_update_command import PostUpdateCommand
 from djangoninja.entity.post import Post
 from djangoninja.repository.db_connection import DatabaseConnection
 from djangoninja.repository.post_repository import PostRepository
@@ -30,3 +31,8 @@ class PostService:
     post = self._post_repository.get_detail(id)
     response = PostResponse(id=post.id, title=post.title, content=post.content, created_at=post.created_at, updated_at=post.updated_at)
     return response
+  
+  def update(self, id: int, post_command: PostUpdateCommand) -> None :
+    post = Post(id=id, title=post_command.title, content=post_command.content, created_at=None, updated_at=datetime.now())
+    
+    self._post_repository.update(post)
