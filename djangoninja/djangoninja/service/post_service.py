@@ -36,3 +36,6 @@ class PostService:
     post = Post(id=id, title=post_command.title, content=post_command.content, created_at=None, updated_at=datetime.now())
     
     self._post_repository.update(post)
+    
+  def delete(self, id: int) -> None :
+    self._post_repository.delete(id)

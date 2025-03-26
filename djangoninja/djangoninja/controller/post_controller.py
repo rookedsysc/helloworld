@@ -25,3 +25,7 @@ def get_detail(request, id: int) -> PostResponse :
 @router.put("/{id}")
 def update_post(request, id: int, post_command: PostUpdateCommand) -> None :
     post_service.update(id, post_command)
+    
+@router.delete("/{id}")
+def delete_post(request, id: int) -> None :
+    post_service.delete(id)

@@ -82,6 +82,18 @@ class PostRepository :
     cursor.close()
     connection.close()
   
+  def delete(self, id: int) -> None : 
+    db = DatabaseConnection()
+    connection = db.get_connection()
+    cursor = connection.cursor()
+    
+    query = "DELETE FROM djangoninja_post WHERE id=%s"
+    cursor.execute(query, (id,))
+    connection.commit()
+    
+    cursor.close()
+    connection.close()
+    
   @staticmethod
   def ensure_post_table_exists():
     db = DatabaseConnection()
