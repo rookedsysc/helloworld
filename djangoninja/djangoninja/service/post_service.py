@@ -17,3 +17,12 @@ class PostService:
     response = PostResponse(id=saved_post.id, title=saved_post.title, content=saved_post.content, created_at=saved_post.created_at, updated_at=saved_post.updated_at)
     
     return response 
+  
+  def get_all(self) -> list[PostResponse] :
+    post_list: list[Post] = self._post_repository.get_all()
+    response: list[PostResponse] = []
+    for post in post_list : 
+      response.append(PostResponse(id=post.id, title=post.title, content=post.content, created_at=post.created_at, updated_at=post.updated_at))
+      
+    return response
+    

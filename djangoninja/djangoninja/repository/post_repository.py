@@ -20,6 +20,24 @@ class PostRepository :
     
     return post
   
+  def get_all(self) -> list[Post] :
+    db = DatabaseConnection()
+    connection = db.get_connection()
+    cursor = connection.cursor()
+    
+    query = "SELECT * FROM djangoninja_post"
+    cursor.execute(query)
+    
+    posts = []
+    for (id, title, content, created_at, updated_at) in cursor.fetchall():
+      post = Post(id=id, title=title, content=content, created_at=created_at, updated_at=updated_at)
+      posts.append(post)
+    
+    cursor.close()
+    connection.close()
+    
+    return posts
+  
   @staticmethod
   def ensure_post_table_exists():
     db = DatabaseConnection()
