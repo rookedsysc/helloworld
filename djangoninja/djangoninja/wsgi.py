@@ -11,6 +11,11 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
+from djangoninja.repository.post_repository import PostRepository
+
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'djangoninja.settings')
 
 application = get_wsgi_application()
+
+
+PostRepository.ensure_post_table_exists()
