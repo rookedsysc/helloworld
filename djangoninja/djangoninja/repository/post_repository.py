@@ -1,6 +1,25 @@
 from djangoninja.entity.post import Post
 from djangoninja.repository.db_connection import DatabaseConnection
+
 class PostRepository :
+  def create_post(self, post: Post) -> Post : 
+    db = DatabaseConnection()
+    connection = db.get_connection()
+    cursor = connection.cursor()
+    
+    query = "INSERT INTO djangoninja_post (title, content, created_at, updated_at) VALUES (%s, %s, %s, %s)"
+    cursor.execute(query, (post.title, post.content, post.created_at, post.updated_at))
+    connection.commit()
+    
+    post_id = cursor.lastrowid  # 삽입된 레코드의 ID 가져오기
+    post.id = post_id
+    
+    cursor.close()
+    connection.close()
+    
+    
+    return post
+  
   @staticmethod
   def ensure_post_table_exists():
     db = DatabaseConnection()
