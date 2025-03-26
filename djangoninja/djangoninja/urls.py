@@ -22,11 +22,6 @@ from ninja import NinjaAPI
 api = NinjaAPI()
 api.add_router("/posts", post_controller.router)
 
-
-@api.get("/add")
-def add(request, a: int, b: int):
-    return {"result": a + b}
-
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("api/", api.urls),
