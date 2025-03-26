@@ -15,3 +15,7 @@ def create_posts(request, post_command: PostCommand) -> PostResponse :
 @router.get("")
 def get_all(request) -> PostResponse :
     return post_service.get_all()
+  
+@router.get("/{id}")
+def get_detail(request, id: int) -> PostResponse :
+    return post_service.get_detail(id)

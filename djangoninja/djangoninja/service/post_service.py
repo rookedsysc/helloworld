@@ -25,4 +25,8 @@ class PostService:
       response.append(PostResponse(id=post.id, title=post.title, content=post.content, created_at=post.created_at, updated_at=post.updated_at))
       
     return response
-    
+  
+  def get_detail(self, id) -> PostResponse :
+    post = self._post_repository.get_detail(id)
+    response = PostResponse(id=post.id, title=post.title, content=post.content, created_at=post.created_at, updated_at=post.updated_at)
+    return response
