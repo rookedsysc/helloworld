@@ -12,30 +12,50 @@ export const useWebSocketConnection = () => {
     setSubmitted,
     setError,
     resetForm,
+    setEvents,
   } = useGameEventStore();
 
   // Connect to WebSocket when component mounts
   useEffect(() => {
+    let isSubscribed = true;
+
     const connectToWebSocket = async () => {
       try {
         setConnectionStatus("connecting");
         await webSocketService.connect();
-        setConnectionStatus("connected");
+
+        // Only proceed if the component is still mounted
+        if (isSubscribed) {
+          setConnectionStatus("connected");
+
+          // Subscribe to game events after connection is established
+          setTimeout(() => {
+            if (isSubscribed) {
+              webSocketService.subscribeToGameEvents((events) => {
+                console.log("Received game events:", events);
+                setEvents(events);
+              });
+            }
+          }, 100); // Small delay to ensure connection is ready
+        }
       } catch (error) {
         console.error("Failed to connect to WebSocket:", error);
-        setConnectionStatus("disconnected");
-        setError("Connection failed. Please try again.");
+        if (isSubscribed) {
+          setConnectionStatus("disconnected");
+          setError("Connection failed. Please try again.");
+        }
       }
     };
 
     connectToWebSocket();
 
-    // Disconnect when component unmounts
+    // Cleanup function
     return () => {
+      isSubscribed = false;
       webSocketService.disconnect();
       setConnectionStatus("disconnected");
     };
-  }, [setConnectionStatus, setError]);
+  }, [setConnectionStatus, setError, setEvents]);
 
   // Mutation for sending game events
   const sendGameEventMutation = useMutation({

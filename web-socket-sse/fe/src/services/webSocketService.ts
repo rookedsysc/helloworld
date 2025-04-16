@@ -8,6 +8,7 @@ const SOCKET_URL = "http://localhost:8080/ws-game-events";
 class WebSocketService {
   private stompClient: Stomp.Client | null = null;
   private connected = false;
+  private gameEventsSubscription: any = null;
 
   // Connect to the WebSocket server
   connect(): Promise<void> {
@@ -38,6 +39,12 @@ class WebSocketService {
   // Disconnect from the WebSocket server
   disconnect(): void {
     if (this.stompClient && this.connected) {
+      // Unsubscribe from game events
+      if (this.gameEventsSubscription) {
+        this.gameEventsSubscription.unsubscribe();
+        this.gameEventsSubscription = null;
+      }
+
       this.stompClient.disconnect(() => {
         console.log("WebSocket disconnected");
         this.connected = false;
@@ -64,6 +71,34 @@ class WebSocketService {
       {},
       JSON.stringify(eventWithTimestamp)
     );
+  }
+
+  // Subscribe to game events from the server
+  subscribeToGameEvents(callback: (events: GameEvent[]) => void): void {
+    if (!this.stompClient || !this.connected) {
+      console.error("Cannot subscribe, not connected");
+      return;
+    }
+
+    // Unsubscribe if already subscribed
+    if (this.gameEventsSubscription) {
+      this.gameEventsSubscription.unsubscribe();
+    }
+
+    // Subscribe to the game events topic
+    this.gameEventsSubscription = this.stompClient.subscribe(
+      "/topic/game-events",
+      (message) => {
+        try {
+          const events = JSON.parse(message.body) as GameEvent[];
+          callback(events);
+        } catch (error) {
+          console.error("Error parsing game events:", error);
+        }
+      }
+    );
+
+    console.log("Subscribed to game events");
   }
 }
 
