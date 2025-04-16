@@ -1,100 +1,61 @@
-import { useEffect } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { useGameEventStore } from "../store/gameEventStore";
 import webSocketService from "../services/webSocketService";
 import { GameEvent } from "../types/GameEvent";
+import { useGameEventStore } from "../store/gameEventStore";
 
 export const useWebSocketConnection = () => {
-  const {
-    connectionStatus,
-    setConnectionStatus,
-    setIsSubmitting,
-    setSubmitted,
-    setError,
-    resetForm,
-    setEvents,
-  } = useGameEventStore();
+  const [isConnecting, setIsConnecting] = useState(false);
+  const setConnectionStatus = useGameEventStore(
+    (state) => state.setConnectionStatus
+  );
+  const setEvents = useGameEventStore((state) => state.setEvents);
 
-  // Connect to WebSocket when component mounts
-  useEffect(() => {
-    let isSubscribed = true;
+  const connectToWebSocket = useCallback(async () => {
+    if (isConnecting || webSocketService.isConnected()) {
+      return;
+    }
 
-    const connectToWebSocket = async () => {
-      try {
-        setConnectionStatus("connecting");
-        await webSocketService.connect();
+    try {
+      setIsConnecting(true);
+      setConnectionStatus("connecting");
 
-        // Only proceed if the component is still mounted
-        if (isSubscribed) {
-          setConnectionStatus("connected");
+      await webSocketService.connect();
 
-          // Subscribe to game events after connection is established
-          setTimeout(() => {
-            if (isSubscribed) {
-              webSocketService.subscribeToGameEvents((events) => {
-                console.log("Received game events:", events);
-                setEvents(events);
-              });
-            }
-          }, 100); // Small delay to ensure connection is ready
-        }
-      } catch (error) {
-        console.error("Failed to connect to WebSocket:", error);
-        if (isSubscribed) {
-          setConnectionStatus("disconnected");
-          setError("Connection failed. Please try again.");
-        }
-      }
-    };
-
-    connectToWebSocket();
-
-    // Cleanup function
-    return () => {
-      isSubscribed = false;
-      webSocketService.disconnect();
-      setConnectionStatus("disconnected");
-    };
-  }, [setConnectionStatus, setError, setEvents]);
-
-  // Mutation for sending game events
-  const sendGameEventMutation = useMutation({
-    mutationFn: (gameEvent: GameEvent) => {
-      return new Promise<void>((resolve, reject) => {
-        try {
-          if (connectionStatus !== "connected") {
-            reject(new Error("Not connected to WebSocket server"));
-            return;
-          }
-
-          webSocketService.sendGameEvent(gameEvent);
-          resolve();
-        } catch (error) {
-          reject(error);
-        }
+      // Only subscribe after successful connection
+      webSocketService.subscribeToGameEvents((events: GameEvent[]) => {
+        setEvents(events);
       });
-    },
-    onMutate: () => {
-      setIsSubmitting(true);
-      setError(null);
-    },
-    onSuccess: () => {
-      setIsSubmitting(false);
-      setSubmitted(true);
-      setTimeout(() => {
-        resetForm();
-      }, 2000);
-    },
-    onError: (error: Error) => {
-      setIsSubmitting(false);
-      setError(error.message || "Failed to send event");
+
+      setConnectionStatus("connected");
+    } catch (error) {
+      console.error("Failed to connect to WebSocket:", error);
+      setConnectionStatus("disconnected");
+    } finally {
+      setIsConnecting(false);
+    }
+  }, [setConnectionStatus, setEvents]);
+
+  const sendGameEvent = useMutation({
+    mutationFn: async (gameEvent: GameEvent) => {
+      if (!webSocketService.isConnected()) {
+        throw new Error("WebSocket is not connected");
+      }
+      await webSocketService.sendGameEvent(gameEvent);
     },
   });
 
+  useEffect(() => {
+    connectToWebSocket();
+
+    return () => {
+      webSocketService.disconnect();
+    };
+  }, [connectToWebSocket]);
+
   return {
-    connectionStatus,
-    sendGameEvent: sendGameEventMutation.mutate,
-    isSubmitting: sendGameEventMutation.isPending,
-    error: sendGameEventMutation.error?.message || null,
+    isConnected: webSocketService.isConnected(),
+    isConnecting,
+    sendGameEvent,
   };
 };

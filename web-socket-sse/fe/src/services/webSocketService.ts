@@ -10,16 +10,29 @@ class WebSocketService {
   private connected = false;
   private gameEventsSubscription: any = null;
 
+  // Check if WebSocket is connected
+  isConnected(): boolean {
+    return this.connected && this.stompClient !== null;
+  }
+
   // Connect to the WebSocket server
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (this.connected) {
+      if (this.isConnected()) {
         resolve();
         return;
       }
 
+      // Cleanup any existing connection
+      if (this.stompClient) {
+        this.disconnect();
+      }
+
       const socket = new SockJS(SOCKET_URL);
       this.stompClient = Stomp.over(socket);
+
+      // Disable debug logging
+      this.stompClient.debug = null;
 
       this.stompClient.connect(
         {},
@@ -29,6 +42,8 @@ class WebSocketService {
           resolve();
         },
         (error) => {
+          this.connected = false;
+          this.stompClient = null;
           console.error("WebSocket connection error:", error);
           reject(error);
         }
