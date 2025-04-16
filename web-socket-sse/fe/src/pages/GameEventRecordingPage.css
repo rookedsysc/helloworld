@@ -26,6 +26,17 @@ main {
   flex: 1;
   padding: 30px 20px;
   background-color: #f9f9f9;
+  display: flex;
+  gap: 30px;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+main > * {
+  flex: 0 0 calc(50% - 15px); /* 정확히 50%에서 gap의 절반을 뺀 크기 */
+  min-width: 0; /* Prevents flex items from overflowing */
 }
 
 footer {
@@ -36,6 +47,19 @@ footer {
   font-size: 0.9rem;
 }
 
+/* Responsive design */
+@media (max-width: 1024px) {
+  main {
+    flex-direction: column;
+    max-width: 800px;
+  }
+
+  main > * {
+    flex: 0 0 100%;
+    width: 100%;
+  }
+}
+
 @media (max-width: 768px) {
   header h1 {
     font-size: 1.5rem;
@@ -43,5 +67,9 @@ footer {
 
   header p {
     font-size: 0.9rem;
+  }
+
+  main {
+    padding: 20px 15px;
   }
 }

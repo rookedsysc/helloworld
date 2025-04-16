@@ -1,4 +1,5 @@
 import { GameEventForm } from "../components/GameEventForm";
+import { GameEventsList } from "../components/GameEventsList";
 import "./GameEventRecordingPage.css";
 
 export const GameEventRecordingPage = () => {
@@ -10,6 +11,7 @@ export const GameEventRecordingPage = () => {
       </header>
       <main>
         <GameEventForm />
+        <GameEventsList />
       </main>
       <footer>
         <p>Game Events Recorder - WebSocket Demo</p>

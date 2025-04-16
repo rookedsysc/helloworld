@@ -9,6 +9,9 @@ interface GameEventState {
   error: string | null;
   connectionStatus: "disconnected" | "connecting" | "connected";
 
+  // Events history
+  events: GameEvent[];
+
   // Actions
   setCurrentEvent: (event: GameEvent) => void;
   updateEventField: <K extends keyof GameEvent>(
@@ -22,6 +25,10 @@ interface GameEventState {
   setConnectionStatus: (
     status: "disconnected" | "connecting" | "connected"
   ) => void;
+
+  // Event history actions
+  setEvents: (events: GameEvent[]) => void;
+  addEvent: (event: GameEvent) => void;
 }
 
 export const useGameEventStore = create<GameEventState>((set) => ({
@@ -31,6 +38,7 @@ export const useGameEventStore = create<GameEventState>((set) => ({
   submitted: false,
   error: null,
   connectionStatus: "disconnected",
+  events: [],
 
   // Actions
   setCurrentEvent: (event) => set({ currentEvent: event }),
@@ -58,4 +66,12 @@ export const useGameEventStore = create<GameEventState>((set) => ({
     }),
 
   setConnectionStatus: (status) => set({ connectionStatus: status }),
+
+  // Event history actions
+  setEvents: (events) => set({ events }),
+
+  addEvent: (event) =>
+    set((state) => ({
+      events: [...state.events, event],
+    })),
 }));
