@@ -1,6 +1,7 @@
 package org.rookedsysc.be.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.rookedsysc.be.model.GameEvent;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -9,6 +10,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class GameEventService {
@@ -19,19 +21,19 @@ public class GameEventService {
     /**
      * Record a new game event and broadcast it to all observers
      */
-    public GameEvent recordEvent(GameEvent event) {
+    public void recordEvent(GameEvent event) {
         // Set timestamp if not provided
         if (event.getTimestamp() == null) {
             event.setTimestamp(LocalDateTime.now());
         }
-        
+
+        log.info("Recording event: {}", event.toString());
+
         // Add to history
         gameEvents.add(event);
         
         // Broadcast to all observers via WebSocket
-        messagingTemplate.convertAndSend("/topic/game-events", event);
-        
-        return event;
+        messagingTemplate.convertAndSend("/topic/game-events", gameEvents);
     }
     
     /**
