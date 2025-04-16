@@ -12,10 +12,12 @@
   "dependencies": {
     "@types/sockjs-client": "^1.5.4",
     "@types/stompjs": "^2.3.9",
+    "buffer": "^6.0.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "sockjs-client": "^1.6.1",
-    "stompjs": "^2.3.3"
+    "stompjs": "^2.3.3",
+    "stream-browserify": "^3.0.0",
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
