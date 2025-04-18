@@ -3,6 +3,7 @@ package org.rookedsysc.be.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.rookedsysc.be.model.GameEvent;
+import org.rookedsysc.be.repository.GameEventRepository;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +17,7 @@ import java.util.List;
 public class GameEventService {
 
     private final SimpMessagingTemplate messagingTemplate;
-    private final List<GameEvent> gameEvents = new ArrayList<>();
+    private final GameEventRepository gameEventRepository;
 
     /**
      * Record a new game event and broadcast it to all observers
@@ -30,16 +31,19 @@ public class GameEventService {
         log.info("Recording event: {}", event.toString());
 
         // Add to history
-        gameEvents.add(event);
-        
+        gameEventRepository.save(event);
+
+        List<GameEvent> savedEvents = gameEventRepository.findAll();
+        log.info("Send events: {}", savedEvents);
+
         // Broadcast to all observers via WebSocket
-        messagingTemplate.convertAndSend("/topic/game-events", gameEvents);
+        messagingTemplate.convertAndSend("/topic/game-events", savedEvents);
     }
     
     /**
      * Get all events that have occurred
      */
     public List<GameEvent> getAllEvents() {
-        return new ArrayList<>(gameEvents);
+        return gameEventRepository.findAll();
     }
 } 

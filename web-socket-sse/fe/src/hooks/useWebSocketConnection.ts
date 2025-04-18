@@ -1,61 +1,54 @@
-import { useEffect, useCallback, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import webSocketService from "../services/webSocketService";
 import { GameEvent } from "../types/GameEvent";
 import { useGameEventStore } from "../store/gameEventStore";
 
 export const useWebSocketConnection = () => {
-  const [isConnecting, setIsConnecting] = useState(false);
-  const setConnectionStatus = useGameEventStore(
-    (state) => state.setConnectionStatus
-  );
-  const setEvents = useGameEventStore((state) => state.setEvents);
-
-  const connectToWebSocket = useCallback(async () => {
-    if (isConnecting || webSocketService.isConnected()) {
-      return;
-    }
-
-    try {
-      setIsConnecting(true);
-      setConnectionStatus("connecting");
-
-      await webSocketService.connect();
-
-      // Only subscribe after successful connection
-      webSocketService.subscribeToGameEvents((events: GameEvent[]) => {
-        setEvents(events);
-      });
-
-      setConnectionStatus("connected");
-    } catch (error) {
-      console.error("Failed to connect to WebSocket:", error);
-      setConnectionStatus("disconnected");
-    } finally {
-      setIsConnecting(false);
-    }
-  }, [setConnectionStatus, setEvents]);
-
-  const sendGameEvent = useMutation({
-    mutationFn: async (gameEvent: GameEvent) => {
-      if (!webSocketService.isConnected()) {
-        throw new Error("WebSocket is not connected");
-      }
-      await webSocketService.sendGameEvent(gameEvent);
-    },
-  });
+  const [isConnected, setIsConnected] = useState(false);
+  const { setEvents, addEvent, setConnectionStatus } = useGameEventStore();
 
   useEffect(() => {
-    connectToWebSocket();
+    const connectAndSubscribe = async () => {
+      try {
+        setConnectionStatus("connecting");
+        await webSocketService.connect();
+        setIsConnected(true);
+        setConnectionStatus("connected");
+
+        await webSocketService.subscribeToGameEvents((events: GameEvent[]) => {
+          if (Array.isArray(events) && events.length > 1) {
+            setEvents(events);
+          } else if (events.length === 1) {
+            addEvent(events[0]);
+          }
+        });
+      } catch (error) {
+        console.error("Failed to connect:", error);
+        setConnectionStatus("disconnected");
+        setIsConnected(false);
+      }
+    };
+
+    connectAndSubscribe();
 
     return () => {
       webSocketService.disconnect();
+      setConnectionStatus("disconnected");
+      setIsConnected(false);
     };
-  }, [connectToWebSocket]);
+  }, [setEvents, addEvent, setConnectionStatus]);
+
+  const sendGameEvent = async (event: GameEvent) => {
+    try {
+      await webSocketService.sendGameEvent(event);
+    } catch (error) {
+      console.error("Failed to send game event:", error);
+      throw error;
+    }
+  };
 
   return {
-    isConnected: webSocketService.isConnected(),
-    isConnecting,
+    isConnected,
     sendGameEvent,
   };
 };

@@ -1,22 +1,32 @@
 import { useGameEventStore } from "../store/gameEventStore";
 import { useWebSocketConnection } from "../hooks/useWebSocketConnection";
 import { EventType } from "../types/GameEvent";
+import { useState } from "react";
 import "./GameEventForm.css";
 
 export const GameEventForm = () => {
-  const { currentEvent, updateEventField, submitted, error } =
-    useGameEventStore();
+  const { currentEvent, updateEventField } = useGameEventStore();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const { connectionStatus, sendGameEvent, isSubmitting } =
-    useWebSocketConnection();
+  const { isConnected, sendGameEvent } = useWebSocketConnection();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    sendGameEvent(currentEvent);
-  };
+    setIsSubmitting(true);
+    setError(null);
+    setSubmitted(false);
 
-  const isConnected = connectionStatus === "connected";
-  const isConnecting = connectionStatus === "connecting";
+    try {
+      await sendGameEvent(currentEvent);
+      setSubmitted(true);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Failed to send event");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="game-event-form">
@@ -24,7 +34,11 @@ export const GameEventForm = () => {
 
       <div className="connection-status">
         Connection status:
-        <span className={`status-${connectionStatus}`}>{connectionStatus}</span>
+        <span
+          className={`status-${isConnected ? "connected" : "disconnected"}`}
+        >
+          {isConnected ? "connected" : "disconnected"}
+        </span>
       </div>
 
       {submitted && (
@@ -144,10 +158,7 @@ export const GameEventForm = () => {
           </>
         )}
 
-        <button
-          type="submit"
-          disabled={isSubmitting || isConnecting || !isConnected}
-        >
+        <button type="submit" disabled={isSubmitting || !isConnected}>
           {isSubmitting ? "Recording..." : "Record Event"}
         </button>
       </form>
