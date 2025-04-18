@@ -1,61 +1,38 @@
-import { useEffect, useCallback, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useState, useEffect, useCallback } from "react";
 import webSocketService from "../services/webSocketService";
 import { GameEvent } from "../types/GameEvent";
-import { useGameEventStore } from "../store/gameEventStore";
 
 export const useWebSocketConnection = () => {
-  const [isConnecting, setIsConnecting] = useState(false);
-  const setConnectionStatus = useGameEventStore(
-    (state) => state.setConnectionStatus
-  );
-  const setEvents = useGameEventStore((state) => state.setEvents);
+  const [isConnected, setIsConnected] = useState(false);
 
-  const connectToWebSocket = useCallback(async () => {
-    if (isConnecting || webSocketService.isConnected()) {
-      return;
-    }
-
-    try {
-      setIsConnecting(true);
-      setConnectionStatus("connecting");
-
-      await webSocketService.connect();
-
-      // Only subscribe after successful connection
-      webSocketService.subscribeToGameEvents((events: GameEvent[]) => {
-        setEvents(events);
-      });
-
-      setConnectionStatus("connected");
-    } catch (error) {
-      console.error("Failed to connect to WebSocket:", error);
-      setConnectionStatus("disconnected");
-    } finally {
-      setIsConnecting(false);
-    }
-  }, [setConnectionStatus, setEvents]);
-
-  const sendGameEvent = useMutation({
-    mutationFn: async (gameEvent: GameEvent) => {
-      if (!webSocketService.isConnected()) {
+  const sendGameEvent = useCallback(
+    async (event: GameEvent) => {
+      if (!isConnected) {
         throw new Error("WebSocket is not connected");
       }
-      await webSocketService.sendGameEvent(gameEvent);
+      await webSocketService.sendGameEvent(event);
     },
-  });
+    [isConnected]
+  );
 
   useEffect(() => {
+    const connectToWebSocket = async () => {
+      try {
+        await webSocketService.connect();
+        setIsConnected(true);
+      } catch (error) {
+        console.error("Failed to connect:", error);
+        setIsConnected(false);
+      }
+    };
+
     connectToWebSocket();
 
     return () => {
       webSocketService.disconnect();
+      setIsConnected(false);
     };
-  }, [connectToWebSocket]);
+  }, []);
 
-  return {
-    isConnected: webSocketService.isConnected(),
-    isConnecting,
-    sendGameEvent,
-  };
+  return { isConnected, sendGameEvent };
 };

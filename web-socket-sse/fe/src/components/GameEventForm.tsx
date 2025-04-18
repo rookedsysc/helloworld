@@ -1,22 +1,54 @@
-import { useGameEventStore } from "../store/gameEventStore";
 import { useWebSocketConnection } from "../hooks/useWebSocketConnection";
-import { EventType } from "../types/GameEvent";
+import { EventType, GameEvent } from "../types/GameEvent";
+import { useState } from "react";
 import "./GameEventForm.css";
 
+const initialEvent: GameEvent = {
+  type: EventType.SHOT,
+  playerId: "",
+  playerName: "",
+  teamId: "",
+  teamName: "",
+  timestamp: new Date().toISOString(),
+  description: "",
+  successful: false,
+  points: 0,
+};
+
 export const GameEventForm = () => {
-  const { currentEvent, updateEventField, submitted, error } =
-    useGameEventStore();
+  const [currentEvent, setCurrentEvent] = useState<GameEvent>(initialEvent);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const { connectionStatus, sendGameEvent, isSubmitting } =
-    useWebSocketConnection();
+  const { isConnected, sendGameEvent } = useWebSocketConnection();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    sendGameEvent(currentEvent);
+  const updateEventField = <K extends keyof GameEvent>(
+    field: K,
+    value: GameEvent[K]
+  ) => {
+    setCurrentEvent((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   };
 
-  const isConnected = connectionStatus === "connected";
-  const isConnecting = connectionStatus === "connecting";
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
+    setSubmitted(false);
+
+    try {
+      await sendGameEvent(currentEvent);
+      setSubmitted(true);
+      setCurrentEvent(initialEvent);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Failed to send event");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="game-event-form">
@@ -24,7 +56,11 @@ export const GameEventForm = () => {
 
       <div className="connection-status">
         Connection status:
-        <span className={`status-${connectionStatus}`}>{connectionStatus}</span>
+        <span
+          className={`status-${isConnected ? "connected" : "disconnected"}`}
+        >
+          {isConnected ? "connected" : "disconnected"}
+        </span>
       </div>
 
       {submitted && (
@@ -112,43 +148,42 @@ export const GameEventForm = () => {
         {currentEvent.type === EventType.SHOT && (
           <>
             <div className="form-group">
-              <label htmlFor="successful">
-                <input
-                  id="successful"
-                  type="checkbox"
-                  checked={currentEvent.successful}
-                  onChange={(e) =>
-                    updateEventField("successful", e.target.checked)
-                  }
-                  disabled={isSubmitting || !isConnected}
-                />
-                Successful Shot
-              </label>
-            </div>
-
-            <div className="form-group">
               <label htmlFor="points">Points:</label>
-              <select
+              <input
                 id="points"
+                type="number"
                 value={currentEvent.points}
                 onChange={(e) =>
                   updateEventField("points", parseInt(e.target.value))
                 }
                 disabled={isSubmitting || !isConnected}
-              >
-                <option value={1}>1 point</option>
-                <option value={2}>2 points</option>
-                <option value={3}>3 points</option>
-              </select>
+                required
+                min="1"
+                max="3"
+              />
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="successful">Successful:</label>
+              <input
+                id="successful"
+                type="checkbox"
+                checked={currentEvent.successful}
+                onChange={(e) =>
+                  updateEventField("successful", e.target.checked)
+                }
+                disabled={isSubmitting || !isConnected}
+              />
             </div>
           </>
         )}
 
         <button
           type="submit"
-          disabled={isSubmitting || isConnecting || !isConnected}
+          disabled={isSubmitting || !isConnected}
+          className="submit-button"
         >
-          {isSubmitting ? "Recording..." : "Record Event"}
+          {isSubmitting ? "Submitting..." : "Submit Event"}
         </button>
       </form>
     </div>

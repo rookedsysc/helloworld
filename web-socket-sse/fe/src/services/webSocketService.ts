@@ -8,7 +8,10 @@ const SOCKET_URL = "http://localhost:8080/ws-game-events";
 class WebSocketService {
   private stompClient: Stomp.Client | null = null;
   private connected = false;
-  private gameEventsSubscription: any = null;
+  private gameEventsSubscription: Stomp.Subscription | null = null;
+  private connectionPromise: Promise<void> | null = null;
+  private connectionAttempts = 0;
+  private readonly MAX_RECONNECT_ATTEMPTS = 3;
 
   // Check if WebSocket is connected
   isConnected(): boolean {
@@ -17,103 +20,190 @@ class WebSocketService {
 
   // Connect to the WebSocket server
   connect(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (this.isConnected()) {
-        resolve();
-        return;
-      }
+    if (this.connectionPromise) {
+      console.log("Connection attempt already in progress");
+      return this.connectionPromise;
+    }
 
+    this.connectionAttempts++;
+    console.log(`Attempting to connect (attempt ${this.connectionAttempts})`);
+
+    this.connectionPromise = new Promise((resolve, reject) => {
       // Cleanup any existing connection
       if (this.stompClient) {
+        console.log("Cleaning up existing connection");
         this.disconnect();
       }
 
-      const socket = new SockJS(SOCKET_URL);
-      this.stompClient = Stomp.over(socket);
+      try {
+        console.log("Initializing SockJS connection to:", SOCKET_URL);
+        const socket = new SockJS(SOCKET_URL);
 
-      // Disable debug logging
-      this.stompClient.debug = null;
+        socket.onopen = () => {
+          console.log("SockJS connection opened");
+        };
 
-      this.stompClient.connect(
-        {},
-        () => {
-          this.connected = true;
-          console.log("WebSocket connection established");
-          resolve();
-        },
-        (error) => {
-          this.connected = false;
-          this.stompClient = null;
-          console.error("WebSocket connection error:", error);
-          reject(error);
-        }
-      );
+        socket.onerror = (error) => {
+          console.error("SockJS connection error:", error);
+        };
+
+        this.stompClient = Stomp.over(socket);
+
+        // Configure debug logging
+        this.stompClient.debug = (str) => {
+          console.debug("[STOMP]", str);
+        };
+
+        console.log("Attempting STOMP connection...");
+        this.stompClient.connect(
+          {},
+          () => {
+            this.connected = true;
+            this.connectionAttempts = 0;
+            console.log("STOMP connection established successfully");
+            resolve();
+          },
+          (error) => {
+            this.connected = false;
+            this.stompClient = null;
+            this.connectionPromise = null;
+            console.error("STOMP connection error:", error);
+
+            if (this.connectionAttempts < this.MAX_RECONNECT_ATTEMPTS) {
+              console.log("Will attempt to reconnect...");
+              setTimeout(() => {
+                this.connect().then(resolve).catch(reject);
+              }, 2000);
+            } else {
+              console.error("Max reconnection attempts reached");
+              reject(error);
+            }
+          }
+        );
+      } catch (error) {
+        console.error("Error during connection setup:", error);
+        this.connectionPromise = null;
+        reject(error);
+      }
     });
+
+    return this.connectionPromise;
   }
 
   // Disconnect from the WebSocket server
   disconnect(): void {
+    console.log("Disconnecting WebSocket...");
     if (this.stompClient && this.connected) {
       // Unsubscribe from game events
       if (this.gameEventsSubscription) {
+        console.log("Unsubscribing from game events");
         this.gameEventsSubscription.unsubscribe();
         this.gameEventsSubscription = null;
       }
 
       this.stompClient.disconnect(() => {
-        console.log("WebSocket disconnected");
+        console.log("WebSocket disconnected successfully");
         this.connected = false;
+        this.connectionPromise = null;
       });
+    } else {
+      console.log("No active connection to disconnect");
     }
   }
 
   // Send a GameEvent to the server
-  sendGameEvent(gameEvent: GameEvent): void {
-    if (!this.stompClient || !this.connected) {
-      console.error("Cannot send message, not connected");
-      return;
+  async sendGameEvent(gameEvent: GameEvent): Promise<void> {
+    console.log("Attempting to send game event:", gameEvent);
+
+    try {
+      await this.ensureConnection();
+
+      if (!this.stompClient || !this.connected) {
+        throw new Error("Cannot send message, not connected");
+      }
+
+      // Set the timestamp to the current time if not provided
+      const eventWithTimestamp: GameEvent = {
+        ...gameEvent,
+        timestamp: gameEvent.timestamp || new Date().toISOString(),
+      };
+
+      console.log("Sending event to /app/record-event:", eventWithTimestamp);
+
+      // Send the event to the record-event endpoint
+      this.stompClient.send(
+        "/app/record-event",
+        {},
+        JSON.stringify(eventWithTimestamp)
+      );
+
+      console.log("Game event sent successfully");
+    } catch (error) {
+      console.error("Error sending game event:", error);
+      throw error;
     }
-
-    // Set the timestamp to the current time if not provided
-    const eventWithTimestamp: GameEvent = {
-      ...gameEvent,
-      timestamp: gameEvent.timestamp || new Date().toISOString(),
-    };
-
-    // Send the event to the recordEvent endpoint
-    this.stompClient.send(
-      "/app/record-event",
-      {},
-      JSON.stringify(eventWithTimestamp)
-    );
   }
 
   // Subscribe to game events from the server
-  subscribeToGameEvents(callback: (events: GameEvent[]) => void): void {
-    if (!this.stompClient || !this.connected) {
-      console.error("Cannot subscribe, not connected");
-      return;
-    }
+  async subscribeToGameEvents(
+    callback: (events: GameEvent[]) => void
+  ): Promise<void> {
+    console.log("Attempting to subscribe to game events");
 
-    // Unsubscribe if already subscribed
-    if (this.gameEventsSubscription) {
-      this.gameEventsSubscription.unsubscribe();
-    }
+    try {
+      await this.ensureConnection();
 
-    // Subscribe to the game events topic
-    this.gameEventsSubscription = this.stompClient.subscribe(
-      "/topic/game-events",
-      (message) => {
-        try {
-          const events = JSON.parse(message.body) as GameEvent[];
-          callback(events);
-        } catch (error) {
-          console.error("Error parsing game events:", error);
-        }
+      if (!this.stompClient || !this.connected) {
+        throw new Error("Cannot subscribe, not connected");
       }
-    );
 
-    console.log("Subscribed to game events");
+      // Unsubscribe if already subscribed
+      if (this.gameEventsSubscription) {
+        console.log("Unsubscribing from existing subscription");
+        this.gameEventsSubscription.unsubscribe();
+      }
+
+      console.log("Subscribing to /topic/game-events");
+
+      // Subscribe to the game events topic
+      this.gameEventsSubscription = this.stompClient.subscribe(
+        "/topic/game-events",
+        (message) => {
+          console.log("Raw message received:", message);
+          try {
+            // Parse the message body
+            const parsedData = JSON.parse(message.body);
+            console.log("Parsed data:", parsedData);
+
+            // Ensure we have an array of events
+            const events = Array.isArray(parsedData)
+              ? parsedData
+              : [parsedData];
+            console.log("Processed events:", events);
+
+            // Call the callback with the processed events
+            callback(events);
+          } catch (error) {
+            console.error("Error processing message:", error);
+            console.error("Message body:", message.body);
+            // Call the callback with empty array in case of error
+            callback([]);
+          }
+        }
+      );
+
+      console.log("Successfully subscribed to game events");
+    } catch (error) {
+      console.error("Error subscribing to game events:", error);
+      throw error;
+    }
+  }
+
+  private async ensureConnection(): Promise<void> {
+    if (!this.isConnected()) {
+      console.log("No active connection, attempting to connect");
+      await this.connect();
+    }
   }
 }
 
