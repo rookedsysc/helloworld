@@ -1,6 +1,8 @@
 [tool.ruff]
 indent-width = 4  # 들여쓰기 공백 수
 line-length = 100 # 한 줄 최대 길이
+
+[tool.ruff.lint]
 select = [# 활성화할 린트 규칙
     "E", # 에러
     "F", # 치명적 에러
@@ -19,19 +21,8 @@ select = [# 활성화할 린트 규칙
     "E402"  # 모듈 수준 임포트
 ]
 
-[tool.ruff.isort]  # 임포트 정렬 설정
-combine-as-imports = true  # as 임포트 결합
-force-single-line = false  # 강제 한 줄 임포트 비활성화
-order-by-type = true  # 타입별 정렬
-case-sensitive = true  # 대소문자 구분
-force-wrap-aliases = true  # 별칭 강제 줄바꿈
-split-on-trailing-comma = true  # 후행 쉼표에서 분할
-lines-after-imports = 2  # 임포트 후 빈 줄 수
-no-lines-before = ["LOCALFOLDER"]  # 특정 섹션 전 빈 줄 제거
-section-order = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]  # 섹션 순서
-
-[tool.ruff.lint]
 ignore = [# 무시할 린트 규칙
+    "B008", 
     "E741", # 모호한 변수명
     "C408", # 불필요한 dict 호출
     "ISC003", # 임포트 스타일
@@ -43,6 +34,15 @@ ignore = [# 무시할 린트 규칙
     "UP015", # 라이브러리 함수에서 불필요한 기본 인자 제거 (open의 'r' 모드 등)
     "RUF003", # 백슬래시 이스케이프 문자 관련
     "RUF100", # 불필요한 이스케이프 시퀀스 제거
-    "RUF008", # 불필요한 이스케이프 시퀀스 제거
+    "RUF008", # 불필요한 이스케이프 시퀸스 제거
     "W605", # 불필요한 문자열 리터럴
 ]
+
+[tool.ruff.lint.isort]  # 임포트 정렬 설정
+combine-as-imports = true  # as 임포트 결합
+force-single-line = false  # 강제 한 줄 임포트 비활성화
+order-by-type = true  # 타입별 정렬
+case-sensitive = true  # 대소문자 구분
+force-wrap-aliases = true  # 별칭 강제 줄바꿈
+split-on-trailing-comma = true  # 후행 쉼표에서 분할
+lines-after-imports = 2  # 임포트 후 빈 줄 수
