@@ -3,6 +3,7 @@ services:
     image: mysql:latest
     container_name: dt-db
     environment:
+      MYSQL_DATABASE: dt_db
       MYSQL_ROOT_PASSWORD: 1234
     ports:
       - "3306:3306"
