@@ -1,10 +1,10 @@
-package com.rookedsysc.distributedtransaction
+package com.rookedsysc.monolithic
 
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 
 @SpringBootTest
-class DistributedTransactionApplicationTests {
+class MonolithicApplicationTests {
 
     @Test
     fun contextLoads() {
