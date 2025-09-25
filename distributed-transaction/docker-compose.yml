@@ -9,5 +9,15 @@ services:
     volumes:
       - db-data:/var/lib/mysql
 
+  dt-redis:
+    image: redis:latest
+    container_name: dt-redis
+    command: redis-server --requirepass 1234
+    ports:
+      - "26379:6379"
+    volumes:
+      - redis-data:/data
+
 volumes:
   db-data:
+  redis-data:
