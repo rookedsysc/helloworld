@@ -1,6 +1,7 @@
 package com.rookedsysc.monolithic.order
 
-import com.fasterxml.jackson.databind.ObjectMapper
+import com.rookedsysc.monolithic.config.lock.DistributedLockConfig
+import com.rookedsysc.monolithic.config.lock.FPDistributedLock
 import com.rookedsysc.monolithic.point.PointService
 import com.rookedsysc.monolithic.product.ProductService
 import jakarta.transaction.Transactional
@@ -13,7 +14,7 @@ class OrderService(
     private val orderItemRepository: OrderItemRepository,
     private val productService: ProductService,
     private val pointService: PointService,
-    private val objectMapper: ObjectMapper
+    private val fpLock: FPDistributedLock
 ) {
 
     fun createOrder(createOrderCommand: CreateOrderCommand): CreateOrderResult {
@@ -29,7 +30,18 @@ class OrderService(
         return CreateOrderResult(order.id)
     }
 
-    fun placeOrder(
+    fun placeOrderWithLock(placeOrderCommand: PlaceOrderCommand) {
+        fpLock.withLock(orderLockConfig(placeOrderCommand.orderId)) {
+            placeOrder(placeOrderCommand)
+        }
+    }
+
+    /**
+     * 주문 처리 메서드
+     * DistributedLock을 사용하여 동시성 제어
+     * LockKeyConstants의 getOrderLockKey 메서드를 SpEL로 호출하여 락 키 생성
+     */
+    private fun placeOrder(
         placeOrderCommand: PlaceOrderCommand
     ) {
         val order: Order = orderRepository.findById(placeOrderCommand.orderId)
@@ -37,8 +49,7 @@ class OrderService(
 
         if (order.status == OrderStatus.COMPLETED) return
 
-
-        var totalPrice: Long = 0L
+        var totalPrice = 0L
         val orderItems: List<OrderItem> = orderItemRepository.findAllByOrderId(order.id)
         for (item in orderItems) {
             val price: Long = productService.buy(
@@ -51,6 +62,17 @@ class OrderService(
         pointService.use(
             1L, totalPrice
         )
-        order.complete() // dirty checking
+        order.complete()
+        orderRepository.save(order)
+    }
+
+    private fun orderLockConfig(orderId: Long): DistributedLockConfig {
+        return DistributedLockConfig(
+            key = "lock:order:$orderId",
+            waitTime = 5,
+            leaseTime = 10,
+            timeUnit = java.util.concurrent.TimeUnit.SECONDS,
+            fairLock = true
+        )
     }
 }

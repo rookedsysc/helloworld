@@ -20,6 +20,6 @@ class OrderController(
     fun placeOrder(
         @RequestBody request: PlaceOrderRequest
     ) {
-        orderService.placeOrder(request.toCommand())
+        orderService.placeOrderWithLock(request.toCommand())
     }
 }
