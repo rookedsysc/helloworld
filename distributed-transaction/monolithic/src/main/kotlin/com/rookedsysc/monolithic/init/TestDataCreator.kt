@@ -14,7 +14,7 @@ class TestDataCreator(
 
     @PostConstruct
     fun init() {
-        if(pointRepository.countPointByUserId(userId = 1L) != 0L)  {
+        if(pointRepository.countPointByUserId(userId = 1L) == 0L)  {
             pointRepository.save(
                 com.rookedsysc.monolithic.point.Point(
                     userId = 1L,
