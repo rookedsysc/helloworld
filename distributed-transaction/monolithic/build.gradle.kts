@@ -36,8 +36,12 @@ dependencies {
     // redisson : https://mvnrepository.com/artifact/org.redisson/redisson
     implementation("org.redisson:redisson-spring-boot-starter:3.51.0")
 
-    // AOP
+    // aop
     implementation("org.springframework.boot:spring-boot-starter-aop")
+
+    // prometheus
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("io.micrometer:micrometer-registry-prometheus")
 }
 
 kotlin {

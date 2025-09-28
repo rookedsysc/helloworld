@@ -1,11 +1,11 @@
 server:
-  port: 9780
+  port: 9781
 
 spring:
   jpa:
     database-platform: org.hibernate.dialect.MySQLDialect
     hibernate:
-      ddl-auto: create
+      ddl-auto: update
     show-sql: true
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -30,3 +30,9 @@ logging:
   level:
     com.rookedsysc.monolithic.config.lock: DEBUG
     org.redisson: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
