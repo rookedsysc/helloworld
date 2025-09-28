@@ -1,5 +1,5 @@
 server:
-  port: 9781
+  port: 9780
 
 spring:
   jpa:
