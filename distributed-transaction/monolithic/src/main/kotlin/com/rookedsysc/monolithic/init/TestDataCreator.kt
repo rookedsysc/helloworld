@@ -14,12 +14,14 @@ class TestDataCreator(
 
     @PostConstruct
     fun init() {
-        pointRepository.save(
-            com.rookedsysc.monolithic.point.Point(
-                userId = 1L,
-                amount = 10000L
+        if(pointRepository.countPointByUserId(userId = 1L) != 0L)  {
+            pointRepository.save(
+                com.rookedsysc.monolithic.point.Point(
+                    userId = 1L,
+                    amount = 10000L
+                )
             )
-        )
+        }
 
         productRepository.save(
             Product(
