@@ -4,6 +4,7 @@ services:
     container_name: dt-db
     environment:
       MYSQL_ROOT_PASSWORD: 1234
+      MYSQL_DATABASE: dt_db
     ports:
       - "23306:3306"
     volumes:
