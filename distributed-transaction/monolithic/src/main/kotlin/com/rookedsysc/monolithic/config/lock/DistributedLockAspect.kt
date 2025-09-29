@@ -7,6 +7,7 @@ import org.redisson.api.RedissonClient
 import org.slf4j.LoggerFactory
 import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
+import org.springframework.transaction.support.TransactionTemplate
 
 /**
  * 간단한 분산락 AOP 처리 클래스
@@ -16,10 +17,10 @@ import org.springframework.stereotype.Component
  */
 @Aspect
 @Component
-@Order(1) // DistributedLockAspect보다 우선순위 높게 설정
 class DistributedLockAspect(
     private val redissonClient: RedissonClient,
-    private val lockKeyGenerator: LockKeyGenerator
+    private val lockKeyGenerator: LockKeyGenerator,
+    private val transactionTemplate: TransactionTemplate
 ) {
     private val logger = LoggerFactory.getLogger(this::class.java)
 
@@ -27,22 +28,26 @@ class DistributedLockAspect(
      * SimpleLock 어노테이션이 적용된 메서드에 대한 AOP 처리
      * Strategy Pattern: lockKeyGenerator를 통해 키 생성 전략 위임
      */
-    @Around("@annotation(distributedLock)")
+    @Around("@annotation(distributedLockWithTransaction)")
     fun lockAroundMethod(
         joinPoint: ProceedingJoinPoint,
-        distributedLock: DistributedLock
+        distributedLockWithTransaction: DistributedLockWithTransaction
     ): Any? {
         // 템플릿 기반 락 키 생성 (Reflection 없이 빠른 처리)
-        val lockKey = lockKeyGenerator.generate(distributedLock.key, joinPoint)
-        val lock = redissonClient.getFairLock(lockKey)
+        val lockKey = lockKeyGenerator.generate(distributedLockWithTransaction.key, joinPoint)
+        val lock = if (distributedLockWithTransaction.fairLock) {
+            redissonClient.getFairLock(lockKey)
+        } else {
+            redissonClient.getLock(lockKey)
+        }
 
-        logger.debug("분산락 획득 시도 - key: $lockKey (템플릿: ${distributedLock.key})")
+        logger.debug("분산락 획득 시도 - key: $lockKey (템플릿: ${distributedLockWithTransaction.key})")
 
         val acquired = try {
             lock.tryLock(
-                distributedLock.waitTime,
-                distributedLock.leaseTime,
-                distributedLock.timeUnit
+                distributedLockWithTransaction.waitTime,
+                distributedLockWithTransaction.leaseTime,
+                distributedLockWithTransaction.timeUnit
             )
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
@@ -52,15 +57,22 @@ class DistributedLockAspect(
         if (!acquired) {
             throw SimpleLockException(
                 "락 획득 실패 - key: $lockKey " +
-                "(대기 시간: ${distributedLock.waitTime}${distributedLock.timeUnit})"
+                        "(대기 시간: ${distributedLockWithTransaction.waitTime}${distributedLockWithTransaction.timeUnit})"
             )
         }
 
         logger.debug("분산락 획득 성공 - key: $lockKey")
 
         return try {
-            // 실제 메서드 실행
-            joinPoint.proceed()
+            transactionTemplate.execute { status ->
+                try {
+                    joinPoint.proceed()
+                } catch (e: Exception) {
+                    status.setRollbackOnly()
+                    logger.error("트랜잭션 롤백 - key: $lockKey", e)
+                    throw e
+                }
+            }
         } finally {
             // 락 해제
             releaseLock(lock, lockKey)
@@ -73,10 +85,8 @@ class DistributedLockAspect(
      */
     private fun releaseLock(lock: org.redisson.api.RLock, lockKey: String) {
         try {
-            if (lock.isHeldByCurrentThread) {
-                lock.unlock()
-                logger.debug("분산락 해제 - key: $lockKey")
-            }
+            lock.unlock()
+            logger.debug("분산락 해제 - key: $lockKey")
         } catch (e: Exception) {
             logger.error("분산락 해제 실패 - key: $lockKey", e)
         }
