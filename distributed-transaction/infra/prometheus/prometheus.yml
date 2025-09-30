@@ -1,0 +1,21 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: "fp"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["10.8.0.6:9780"]
+    metric_relabel_configs:
+      - source_labels: [uri]
+        regex: "^/(swagger-ui|.*api-docs).*"
+        action: drop
+
+  - job_name: "aop"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets: ["10.8.0.6:9781"]
+    metric_relabel_configs:
+      - source_labels: [uri]
+        regex: "^/(swagger-ui|.*api-docs).*"
+        action: drop
