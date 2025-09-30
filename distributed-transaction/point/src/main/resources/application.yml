@@ -1,0 +1,20 @@
+server:
+  port: 9787
+
+spring:
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://192.168.36.161:23306/point_db
+    username: root
+    password: 1234
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
