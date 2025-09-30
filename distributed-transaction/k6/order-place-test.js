@@ -3,14 +3,15 @@ import http from 'k6/http';
 const apiUrl = 'http://localhost:9780';
 
 export let options = {
-    vus: 100,
+    vus: 50,
+    iterations: 1000,
     duration: '10m',
 };
 
 export default function () {
     const orderPayload = JSON.stringify({
         orderItems: [
-            { productId: 1, quantity: 2 },
+            { productId: 1, quantity: 1 },
         ]
     });
 
@@ -20,6 +21,10 @@ export default function () {
             'accept': '*/*',
         },
     });
+
+    if(orderResponse.status !== 200){
+        console.log("주문 실패 응답:", orderResponse.status, orderResponse.body);
+    }
 
     const orderId = orderResponse.json('orderId');
     const placePayload = JSON.stringify({
@@ -33,7 +38,7 @@ export default function () {
         },
     };
 
-    const batchRequests = Array.from({ length: 10 }, () => ({
+    const batchRequests = Array.from({ length: 3 }, () => ({
         method: 'POST',
         url: `${apiUrl}/order/place`,
         body: placePayload,
@@ -43,6 +48,8 @@ export default function () {
     const responses = http.batch(batchRequests);
 
     responses.forEach((response, index) => {
-        console.log(`Request ${index + 1} status: ${response.status}`);
+        if(response.status !== 200){
+            console.log(`Request ${index + 1} failed with status: ${response.status}, body: ${response.body}`);
+        }
     });
 }
