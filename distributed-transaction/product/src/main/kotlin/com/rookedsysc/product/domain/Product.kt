@@ -15,7 +15,9 @@ class Product(
 
     var quantity: Long,
 
-    var price: Long
+    var price: Long,
+
+    var reservedQuantity: Long,
 ) {
 
     fun calculatePrice(quantity: Long): Long {
@@ -33,5 +35,18 @@ class Product(
             throw RuntimeException("재고가 부족합니다.")
         }
         this.quantity -= quantity
+    }
+
+    /**
+     * 재고 예약 및 예약 금액 반환
+     * throws RuntimeException 재고 부족 시
+     */
+    fun reserve(requestedQuantity: Long): Long {
+        val reservableQuantity = this.quantity + this.reservedQuantity
+        if (reservableQuantity < requestedQuantity) {
+            throw RuntimeException("재고가 부족합니다.")
+        }
+        this.reservedQuantity += requestedQuantity
+        return this.price * requestedQuantity
     }
 }
