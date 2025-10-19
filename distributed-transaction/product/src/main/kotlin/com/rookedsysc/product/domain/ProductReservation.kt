@@ -35,4 +35,14 @@ class ProductReservation(
 
         this.status = ProductReservationStatus.COMPLETED
     }
+
+    fun cancel() {
+        if(this.status == ProductReservationStatus.CANCELED) {
+            throw RuntimeException("이미 취소된 예약 건입니다.")
+        } else if(this.status == ProductReservationStatus.COMPLETED) {
+            throw RuntimeException("이미 완료된 예약 건입니다.")
+        }
+
+        this.status = ProductReservationStatus.CANCELED
+    }
 }

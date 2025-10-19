@@ -37,12 +37,19 @@ class Product(
         this.quantity -= quantity
     }
 
-    fun confirm(reservedQuantity: Long) {
-        if (this.quantity < reservedQuantity || this.reservedQuantity < reservedQuantity) {
+    fun confirm(requestedQuantity: Long) {
+        if (this.quantity < requestedQuantity || this.reservedQuantity < requestedQuantity) {
             throw RuntimeException("예약된 재고가 부족합니다.")
         }
-        this.reservedQuantity -= reservedQuantity
-        this.quantity -= reservedQuantity
+        this.reservedQuantity -= requestedQuantity
+        this.quantity -= requestedQuantity
+    }
+
+    fun cancel(requestedQuantity: Long) {
+        if(this.reservedQuantity < requestedQuantity) {
+            throw RuntimeException("예약된 재고가 부족합니다.")
+        }
+        this.reservedQuantity -= requestedQuantity
     }
 
     /**
