@@ -1,4 +1,4 @@
-package com.rookedsysc.point.entity
+package com.rookedsysc.point.domain
 
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
@@ -15,7 +15,9 @@ class Point(
 
     var userId: Long,
 
-    var amount: Long
+    var amount: Long,
+
+    var reservedAmount: Long = 0,
     ) {
 
     fun use(amount: Long) {
