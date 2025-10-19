@@ -1,10 +1,12 @@
 package com.rookedsysc.product.application
 
 import com.rookedsysc.common.lock.DistributedLockWithTransaction
+import com.rookedsysc.product.application.dto.ProductReserveConfirmCommand
 import com.rookedsysc.product.application.dto.ProductReserveCommand
 import com.rookedsysc.product.application.dto.ProductReserveResult
 import com.rookedsysc.product.domain.Product
 import com.rookedsysc.product.domain.ProductReservation
+import com.rookedsysc.product.domain.ProductReservationStatus
 import com.rookedsysc.product.infrastructure.out.ProductRepository
 import com.rookedsysc.product.infrastructure.out.ProductReservationRepository
 import org.springframework.stereotype.Service
@@ -14,9 +16,12 @@ class ProductReservationService(
     private val productRepository: ProductRepository,
     private val productReservationRepository: ProductReservationRepository
 ) {
+    companion object {
+        private const val LOCK_KEY = "lock:product:reserve:{command.requestId}"
+    }
 
     @DistributedLockWithTransaction(
-        key = "lock:product:reserve:{command.requestId}",
+        key = LOCK_KEY,
         fairLock = true
     )
     fun tryReserve(command: ProductReserveCommand) : ProductReserveResult {
@@ -50,5 +55,37 @@ class ProductReservationService(
         }
 
         return ProductReserveResult(totalPrice)
+    }
+
+    @DistributedLockWithTransaction(
+        key = LOCK_KEY,
+        fairLock = true
+    )
+    fun confirmReserve(command: ProductReserveConfirmCommand) {
+        val reservations: List<ProductReservation> = productReservationRepository.findAllByRequestId(command.requestId)
+
+        if (reservations.isEmpty()) {
+            throw RuntimeException("예약 정보가 존재하지 않습니다.")
+        }
+
+        var alreadyReserved: Boolean = reservations.any { it.status == ProductReservationStatus.COMPLETED }
+
+        if (alreadyReserved) {
+            println("이미 예약이 완료된 요청입니다. requestId=${command.requestId}")
+            return
+        }
+
+        for (reservation in reservations) {
+            val product: Product = productRepository.findById(
+                reservation
+                    .productId
+            ).orElseThrow { RuntimeException("존재하지 않는 상품입니다.") }
+
+            product.confirm(reservation.reservedQuantity)
+            reservation.confirm()
+
+            productRepository.save(product)
+            productReservationRepository.save(reservation)
+        }
     }
 }

@@ -1,6 +1,7 @@
 package com.rookedsysc.product.infrastructure.`in`
 
 import com.rookedsysc.product.application.ProductReservationService
+import com.rookedsysc.product.infrastructure.`in`.dto.ProductReserveConfirmRequest
 import com.rookedsysc.product.infrastructure.`in`.dto.ProductReserveRequest
 import com.rookedsysc.product.infrastructure.`in`.dto.ProductReserveResponse
 import io.swagger.v3.oas.annotations.Operation
@@ -23,4 +24,14 @@ class ProductReservationController(
         val totalPrice = productReservationService.tryReserve(command).totalPrice
         return ProductReserveResponse(totalPrice = totalPrice)
     }
+
+    @Operation(summary = "상품 예약 확정")
+    @PostMapping("/reserve/confirm")
+    fun confirm(
+        @RequestBody request: ProductReserveConfirmRequest
+    ) {
+        val command = request.toCommand()
+        productReservationService.confirmReserve(command)
+    }
+
 }

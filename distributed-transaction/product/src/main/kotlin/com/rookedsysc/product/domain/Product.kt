@@ -37,6 +37,14 @@ class Product(
         this.quantity -= quantity
     }
 
+    fun confirm(reservedQuantity: Long) {
+        if (this.quantity < reservedQuantity || this.reservedQuantity < reservedQuantity) {
+            throw RuntimeException("예약된 재고가 부족합니다.")
+        }
+        this.reservedQuantity -= reservedQuantity
+        this.quantity -= reservedQuantity
+    }
+
     /**
      * 재고 예약 및 예약 금액 반환
      * throws RuntimeException 재고 부족 시
