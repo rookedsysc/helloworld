@@ -17,7 +17,7 @@ class Product(
 
     var price: Long,
 
-    var reservedQuantity: Long,
+    var reservedQuantity: Long = 0L,
 ) {
 
     fun calculatePrice(quantity: Long): Long {
