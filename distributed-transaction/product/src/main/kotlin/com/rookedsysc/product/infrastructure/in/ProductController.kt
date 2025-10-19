@@ -1,9 +1,11 @@
 package com.rookedsysc.product.infrastructure.`in`
 
 import com.rookedsysc.common.model.PageResponse
+import com.rookedsysc.product.application.ProductCreateService
 import com.rookedsysc.product.application.ProductListService
 import com.rookedsysc.product.application.ProductService
 import com.rookedsysc.product.application.dto.ProductListResult
+import com.rookedsysc.product.infrastructure.`in`.dto.ProductCreateRequest
 import com.rookedsysc.product.infrastructure.`in`.dto.ProductListResponse
 import com.rookedsysc.product.infrastructure.`in`.dto.ProductReserveRequest
 import com.rookedsysc.product.infrastructure.`in`.dto.ProductReserveResponse
@@ -22,7 +24,8 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/products")
 class ProductController(
     private val productService: ProductService,
-    private val productListService: ProductListService
+    private val productListService: ProductListService,
+    private val productCreateService: ProductCreateService
 ) {
     @GetMapping
     fun list(
@@ -36,6 +39,13 @@ class ProductController(
         }
         return PageResponse.from(productResponses)
     }
+
+    @PostMapping
+    fun create(@RequestBody request: ProductCreateRequest): ProductListResponse {
+        val productResult = productCreateService.create(request.toCommand())
+        return ProductListResponse.from(productResult)
+    }
+
 
     @PostMapping("/reserve")
     fun reserve(@RequestBody request: ProductReserveRequest): ProductReserveResponse {
