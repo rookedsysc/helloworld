@@ -1,6 +1,6 @@
 package com.rookedsysc.product.infrastructure.`in`
 
-import com.rookedsysc.product.application.ProductService
+import com.rookedsysc.product.application.ProductReservationService
 import com.rookedsysc.product.infrastructure.`in`.dto.ProductReserveRequest
 import com.rookedsysc.product.infrastructure.`in`.dto.ProductReserveResponse
 import io.swagger.v3.oas.annotations.Operation
@@ -14,13 +14,13 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/products")
 class ProductReservationController(
-    private val productService: ProductService,
+    private val productReservationService: ProductReservationService,
 ) {
     @Operation(summary = "상품 예약 생성")
     @PostMapping("/reserve")
     fun reserve(@RequestBody request: ProductReserveRequest): ProductReserveResponse {
         val command = request.toCommand()
-        val totalPrice = productService.tryReserve(command).totalPrice
+        val totalPrice = productReservationService.tryReserve(command).totalPrice
         return ProductReserveResponse(totalPrice = totalPrice)
     }
 }

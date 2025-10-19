@@ -10,7 +10,7 @@ import com.rookedsysc.product.infrastructure.out.ProductReservationRepository
 import org.springframework.stereotype.Service
 
 @Service
-class ProductService(
+class ProductReservationService(
     private val productRepository: ProductRepository,
     private val productReservationRepository: ProductReservationRepository
 ) {
