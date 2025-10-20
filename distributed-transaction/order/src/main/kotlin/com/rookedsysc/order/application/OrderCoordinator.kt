@@ -38,7 +38,7 @@ class OrderCoordinator(
         try {
             val orderInfo : OrderDto = orderService.getOrder(orderId)
 
-            val productReserveApiRequest: ProductReserveApiRequest = ProductReserveApiRequest(
+            val productReserveApiRequest = ProductReserveApiRequest(
                 requestId = requestId,
                 items = orderInfo.orderItems.map {
                     ProductReserveApiRequest.ReserveItem(
@@ -53,7 +53,7 @@ class OrderCoordinator(
             val pointReserveApiRequest = PointReserveApiRequest(
                 requestId = requestId,
                 userId = orderInfo.userId,
-                reserveAmount = productReserveApiResponse.totalPrice
+                amount = productReserveApiResponse.totalPrice
             )
 
             pointApiClient.reservePoint(request = pointReserveApiRequest)
