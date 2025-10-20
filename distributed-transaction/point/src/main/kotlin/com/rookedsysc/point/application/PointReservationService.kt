@@ -18,11 +18,11 @@ class PointReservationService(
     private val pointReservationRepository: PointReservationRepository
 ) {
     companion object {
-        private const val LOCK_KEY = "lock:point:reserve:{command.requestId}"
+        private const val LOCK_PREFIX = "lock:point:reserve:"
     }
 
     @DistributedLockWithTransaction(
-        key = LOCK_KEY,
+        key = LOCK_PREFIX + "userId:{command.userId}",
         fairLock = true
     )
     fun tryReserve(command: PointReserveCommand): PointReserveResult {
@@ -54,7 +54,7 @@ class PointReservationService(
     }
 
     @DistributedLockWithTransaction(
-        key = LOCK_KEY,
+        key = LOCK_PREFIX + "{command.requestId}",
         fairLock = true
     )
     fun confirmReserve(command: PointReserveConfirmCommand) {
@@ -85,7 +85,7 @@ class PointReservationService(
     }
 
     @DistributedLockWithTransaction(
-        key = LOCK_KEY,
+        key = LOCK_PREFIX + "{command.requestId}",
         fairLock = true
     )
     fun cancelReserve(command: PointReserveCancelCommand) {
