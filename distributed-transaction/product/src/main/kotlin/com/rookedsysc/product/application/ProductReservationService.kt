@@ -18,11 +18,11 @@ class ProductReservationService(
     private val productReservationRepository: ProductReservationRepository
 ) {
     companion object {
-        private const val LOCK_KEY = "lock:product:reserve:{command.requestId}"
+        private const val LOCK_PREFIX = "lock:product:reserve:"
     }
 
     @DistributedLockWithTransaction(
-        key = LOCK_KEY,
+        key = LOCK_PREFIX + "productId:{command.productId}",
         fairLock = true
     )
     fun tryReserve(command: ProductReserveCommand) : ProductReserveResult {
@@ -59,7 +59,7 @@ class ProductReservationService(
     }
 
     @DistributedLockWithTransaction(
-        key = LOCK_KEY,
+        key = LOCK_PREFIX + "{command.requestId}",
         fairLock = true
     )
     fun confirmReserve(command: ProductReserveConfirmCommand) {
@@ -91,7 +91,7 @@ class ProductReservationService(
     }
 
     @DistributedLockWithTransaction(
-        key = LOCK_KEY,
+        key = LOCK_PREFIX + "{command.requestId}",
         fairLock = true
     )
     fun cancelReserve(command: ProductReserveCancelCommand) {
