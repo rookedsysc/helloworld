@@ -4,6 +4,10 @@ import com.rookedsysc.order.infrastructure.out.product.dto.ProductReserveApiRequ
 import com.rookedsysc.order.infrastructure.out.product.dto.ProductReserveApiResponse
 import com.rookedsysc.order.infrastructure.out.product.dto.ProductReserveCancelRequest
 import com.rookedsysc.order.infrastructure.out.product.dto.ProductReserveConfirmRequest
+import org.springframework.retry.annotation.Backoff
+import org.springframework.retry.annotation.Retryable
+import org.springframework.stereotype.Component
+import org.springframework.web.client.HttpClientErrorException
 import org.springframework.web.client.RestClient
 
 /**
@@ -16,7 +20,7 @@ import org.springframework.web.client.RestClient
  *
  * @property restClient Product 서비스와 통신하기 위한 RestClient
  */
-class ProductApiClient(
+open class ProductApiClient(
     private val restClient: RestClient
 ) {
     /**
@@ -25,7 +29,18 @@ class ProductApiClient(
      * @param request 상품 예약 요청 정보
      * @return 총 상품 가격 정보
      */
-    fun reserveProduct(request: ProductReserveApiRequest): ProductReserveApiResponse {
+    @Retryable(
+        retryFor = [Exception::class],
+        // client error인 경우 재시도 하지 않음
+        noRetryFor = [HttpClientErrorException::class],
+        maxAttempts = 3,
+        backoff = Backoff(
+            delay = 1000L,
+            multiplier = 2.0,
+            random = true // 1.0 < jitter <= 2.0
+        )
+    )
+    open fun reserveProduct(request: ProductReserveApiRequest): ProductReserveApiResponse {
         return restClient.post()
             .uri("/products/reservations")
             .body(request)
@@ -39,7 +54,7 @@ class ProductApiClient(
      *
      * @param request 상품 예약 확정 요청 정보
      */
-    fun reserveConfirm(request: ProductReserveConfirmRequest) {
+    open fun reserveConfirm(request: ProductReserveConfirmRequest) {
         restClient.post()
             .uri("/products/reservations/confirm")
             .body(request)
@@ -52,7 +67,7 @@ class ProductApiClient(
      *
      * @param request 상품 예약 취소 요청 정보
      */
-    fun reserveCancel(request: ProductReserveCancelRequest) {
+    open fun reserveCancel(request: ProductReserveCancelRequest) {
         restClient.post()
             .uri("/products/reservations/cancel")
             .body(request)
