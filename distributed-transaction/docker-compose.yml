@@ -1,0 +1,63 @@
+services:
+  dt-db:
+    image: mysql:latest
+    container_name: dt-db
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+    ports:
+      - "23306:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./infra/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  dt-redis:
+    image: redis:latest
+    container_name: dt-redis
+    command: redis-server --requirepass 1234
+    ports:
+      - "26379:6379"
+    volumes:
+      - redis-data:/data
+
+  dt-prometheus:
+    image: prom/prometheus:latest
+    container_name: dt-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "29090:9090"
+    networks:
+      - distributed-transaction
+
+  dt-loki:
+    image: grafana/loki:latest
+    container_name: dt-loki
+    restart: unless-stopped
+    ports:
+      - "23100:3100"
+    networks:
+      - distributed-transaction
+
+  dt-grafana:
+    image: grafana/grafana:latest
+    container_name: dt-grafana
+    restart: unless-stopped
+    ports:
+      - "23000:3000"
+    volumes:
+      - ./infra/grafana/datasources:/etc/grafana/provisioning/datasources
+      - grafana-data:/var/lib/grafana
+    networks:
+      - distributed-transaction
+    depends_on:
+      - dt-prometheus
+      - dt-loki
+
+volumes:
+  db-data:
+  redis-data:
+  grafana-data:
+
+networks:
+  distributed-transaction:

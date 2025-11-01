@@ -36,6 +36,5 @@ out/
 ### VS Code ###
 .vscode/
 
-### Gradle Wrapper ###
-gradlew
-gradlew.bat
+### Kotlin ###
+.kotlin
