@@ -8,4 +8,8 @@ interface ProductTransactionHistoryRepository : JpaRepository<ProductTransaction
         requestId: String,
         transactionType: ProductTransactionHistory.TransactionType
     ): List<ProductTransactionHistory>
+
+    fun findAllByRequestId(
+        requestId: String,
+    ): List<ProductTransactionHistory>
 }
