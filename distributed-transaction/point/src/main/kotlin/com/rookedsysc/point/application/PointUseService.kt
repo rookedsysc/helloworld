@@ -1,6 +1,7 @@
 package com.rookedsysc.point.application
 
 import com.rookedsysc.common.lock.DistributedLockWithTransaction
+import com.rookedsysc.point.application.dto.PointUseCancelCommand
 import com.rookedsysc.point.application.dto.PointUseCommand
 import com.rookedsysc.point.domain.Point
 import com.rookedsysc.point.domain.PointTransactionHistory
@@ -40,9 +41,14 @@ class PointUseService(
         )
     }
 
+
+    @DistributedLockWithTransaction(
+        key = "product:orchestration:{command.requestId}",
+        fairLock = true
+    )
     fun cancel(command: PointUseCancelCommand) {
         val useHistory = pointTransactionHistoryRepository.findByRequestIdAndTransactionType(
-            command.requestId(),
+            command.requestId,
             PointTransactionHistory.TransactionType.USE
         )
 
@@ -51,7 +57,7 @@ class PointUseService(
         }
 
         val cancelHistory = pointTransactionHistoryRepository.findByRequestIdAndTransactionType(
-            command.requestId(),
+            command.requestId,
             PointTransactionHistory.TransactionType.CANCEL
         )
 
@@ -60,17 +66,16 @@ class PointUseService(
             return
         }
 
-        val point = pointRepository.findById(useHistory.getPointId()).orElseThrow()
+        val point = pointRepository.findById(useHistory.pointId).orElseThrow()
 
-        point.cancel(useHistory.getAmount())
+        point.cancel(useHistory.amount)
         pointTransactionHistoryRepository.save(
             PointTransactionHistory(
-                command.requestId(),
-                point.getId(),
-                useHistory.getAmount(),
-                PointTransactionHistory.TransactionType.CANCEL
+                requestId = command.requestId,
+                pointId = point.id,
+                amount = useHistory.amount,
+                transactionType = PointTransactionHistory.TransactionType.CANCEL
             )
         )
     }
-
 }
