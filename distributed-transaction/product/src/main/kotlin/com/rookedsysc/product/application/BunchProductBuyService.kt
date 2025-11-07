@@ -1,6 +1,6 @@
 package com.rookedsysc.product.application
 
-import com.rookedsysc.common.lock.DistributedLockWithTransaction
+import com.rookedsysc.common.lock.DistributedLock
 import com.rookedsysc.product.application.dto.BunchProductBuyCommand
 import com.rookedsysc.product.application.dto.BunchProductBuyResult
 import com.rookedsysc.product.application.dto.BunchProductCancelCommand
@@ -8,7 +8,6 @@ import com.rookedsysc.product.application.dto.BunchProductCancelResult
 import com.rookedsysc.product.application.dto.SingleProductBuyCommand
 import com.rookedsysc.product.application.dto.SingleProductBuyResult
 import com.rookedsysc.product.application.dto.SingleProductCancelCommand
-import com.rookedsysc.product.application.dto.SingleProductCancelResult
 import com.rookedsysc.product.domain.ProductTransactionHistory
 import com.rookedsysc.product.infrastructure.out.ProductTransactionHistoryRepository
 import org.springframework.stereotype.Service
@@ -18,7 +17,7 @@ class BunchProductBuyService(
     private val singleProductBuyService: SingleProductBuyService,
     private val productTransactionHistoryRepository: ProductTransactionHistoryRepository,
 ) {
-    @DistributedLockWithTransaction(
+    @DistributedLock(
         key = "product:orchestration:{command.requestId}",
         fairLock = true
     )
@@ -58,7 +57,7 @@ class BunchProductBuyService(
         return BunchProductBuyResult(totalPrice = totalPrice)
     }
 
-    @DistributedLockWithTransaction(
+    @DistributedLock(
         key = "product:orchestration:{command.requestId}",
         fairLock = true
     )
@@ -68,8 +67,11 @@ class BunchProductBuyService(
                 requestId = command.requestId
             )
                 .also {
+                    // 재고가 없어서 주문 정보가 생기지 않았을 수도 있음
                     if (it.isEmpty()) {
-                        throw RuntimeException("주문 정보를 찾을 수 없습니다.")
+                        return BunchProductCancelResult(
+                            totalPrice = 0L
+                        )
                     }
                 }
 

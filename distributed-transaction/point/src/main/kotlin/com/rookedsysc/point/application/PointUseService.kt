@@ -1,6 +1,6 @@
 package com.rookedsysc.point.application
 
-import com.rookedsysc.common.lock.DistributedLockWithTransaction
+import com.rookedsysc.common.lock.DistributedLock
 import com.rookedsysc.point.application.dto.PointUseCancelCommand
 import com.rookedsysc.point.application.dto.PointUseCommand
 import com.rookedsysc.point.domain.Point
@@ -14,7 +14,7 @@ class PointUseService(
     private val pointRepository: PointRepository,
     private val pointTransactionHistoryRepository: PointTransactionHistoryRepository
 ) {
-    @DistributedLockWithTransaction(
+    @DistributedLock(
         key = "product:orchestration:{command.requestId}",
         fairLock = true
     )
@@ -42,7 +42,7 @@ class PointUseService(
     }
 
 
-    @DistributedLockWithTransaction(
+    @DistributedLock(
         key = "product:orchestration:{command.requestId}",
         fairLock = true
     )

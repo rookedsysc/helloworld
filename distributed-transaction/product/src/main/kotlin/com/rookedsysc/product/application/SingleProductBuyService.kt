@@ -1,10 +1,9 @@
 package com.rookedsysc.product.application
 
-import com.rookedsysc.common.lock.DistributedLockWithTransaction
+import com.rookedsysc.common.lock.DistributedLock
 import com.rookedsysc.product.application.dto.SingleProductBuyCommand
 import com.rookedsysc.product.application.dto.SingleProductBuyResult
 import com.rookedsysc.product.application.dto.SingleProductCancelCommand
-import com.rookedsysc.product.application.dto.SingleProductCancelResult
 import com.rookedsysc.product.domain.Product
 import com.rookedsysc.product.infrastructure.out.ProductRepository
 import org.springframework.stereotype.Service
@@ -13,7 +12,7 @@ import org.springframework.stereotype.Service
 class SingleProductBuyService(
     private val productRepository: ProductRepository
 ) {
-    @DistributedLockWithTransaction(
+    @DistributedLock(
         key = "product:single-buy:{productId}",
         fairLock = true
     )
@@ -30,7 +29,7 @@ class SingleProductBuyService(
         )
     }
 
-    @DistributedLockWithTransaction(
+    @DistributedLock(
         key = "product:single-buy:{productId}",
         fairLock = true
     )
