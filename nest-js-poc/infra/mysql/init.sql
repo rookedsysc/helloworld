@@ -1,0 +1,1 @@
+create database if not exists nestjs_poc_db;
