@@ -1,6 +1,6 @@
 package com.rookedsysc.point.infrastructure.out
 
-import com.rookedsysc.point.entity.Point
+import com.rookedsysc.point.domain.Point
 import org.springframework.data.jpa.repository.JpaRepository
 
 interface PointRepository : JpaRepository<Point, Long> {
