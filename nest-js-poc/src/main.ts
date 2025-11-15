@@ -13,7 +13,7 @@ async function bootstrap() {
     .setVersion('v1')
     .build();
   const documents = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('swagger-ui', app, documents, {
+  SwaggerModule.setup('swagger-ui/index.html', app, documents, {
     swaggerOptions: {
       filter: true,
       displayRequestDuration: true,
