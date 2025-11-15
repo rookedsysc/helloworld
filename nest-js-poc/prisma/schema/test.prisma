@@ -1,0 +1,7 @@
+model Test {
+  id      Int    @id @default(autoincrement())
+  title   String
+  content String @db.Text
+
+  @@map("tests")
+}
