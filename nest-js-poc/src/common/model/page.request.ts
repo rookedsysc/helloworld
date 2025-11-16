@@ -1,9 +1,9 @@
 import { IsNumber, IsOptional } from 'class-validator';
-import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
 export class PageRequest {
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: '현재 페이지 번호 (기본값: 1)',
     example: 1,
   })
@@ -13,7 +13,7 @@ export class PageRequest {
   @IsOptional()
   currentPage: number;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     description: '페이지당 항목 수 (기본값: 10)',
     example: 10,
   })
