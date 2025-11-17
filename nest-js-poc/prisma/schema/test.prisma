@@ -1,0 +1,8 @@
+model Test {
+  id         Int       @id @default(autoincrement())
+  title      String
+  content    String    @db.Text
+  deleted_at DateTime?
+
+  @@map("tests")
+}
