@@ -20,6 +20,12 @@ export class TestRepository {
     });
   }
 
+  async findById({ id }: { id: number }): Promise<Test | null> {
+    return await this.prisma.test.findUnique({
+      where: { id },
+    });
+  }
+
   async create(title: string, content: string): Promise<Test> {
     return await this.prisma.test.create({
       data: {
