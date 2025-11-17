@@ -34,4 +34,24 @@ export class TestRepository {
       },
     });
   }
+
+  async update({
+    id,
+    title,
+    content,
+  }: {
+    id: number;
+    title: string | null | undefined;
+    content: string | null | undefined;
+  }): Promise<void> {
+    await this.prisma.test.update({
+      where: {
+        id: id,
+      },
+      data: {
+        title: title ?? undefined,
+        content: content ?? undefined,
+      },
+    });
+  }
 }

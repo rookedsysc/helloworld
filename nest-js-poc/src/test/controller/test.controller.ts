@@ -11,6 +11,7 @@ import { CreateTestResponse } from '../dto/create-test.response';
 import { PageRequest } from 'src/common/model/page.request';
 import { TestListResponse } from '../dto/test-list.response';
 import { TestDetailResponse } from '../dto/test-detail.response';
+import { TestUpdateRequest } from '../dto/test-update.request';
 
 @ApiTags('prisma 학습용 테스트 컨트롤러')
 @Controller('open-api/test')
@@ -50,5 +51,18 @@ export class TestController {
     @Body() request: CreateTestRequest,
   ): Promise<CreateTestResponse> {
     return await this.testService.createTest(request);
+  }
+
+  @ApiOperation({ summary: '테스트 데이터 수정' })
+  @ApiOkResponse({
+    description: '테스트 데이터 수정 성공',
+  })
+  @ApiNotFoundResponse({ description: '해당 ID의 테스트를 찾을 수 없습니다' })
+  @Post(':id')
+  async updateTest(
+    @Query('id') id: number,
+    @Body() request: TestUpdateRequest,
+  ): Promise<void> {
+    await this.testService.updateTest(id, request);
   }
 }

@@ -6,6 +6,7 @@ import { PageRequest } from 'src/common/model/page.request';
 import { TestListResponse } from '../dto/test-list.response';
 import { Test } from 'generated/prisma';
 import { TestDetailResponse } from '../dto/test-detail.response';
+import { TestUpdateRequest as TestUpdateRequest } from '../dto/test-update.request';
 
 @Injectable()
 export class TestService {
@@ -52,5 +53,17 @@ export class TestService {
       title: testEntity.title,
       content: testEntity.content,
     });
+  }
+
+  async updateTest(id: number, request: TestUpdateRequest): Promise<void> {
+    try {
+      await this.testRepository.update({
+        id: id,
+        title: request.title,
+        content: request.content,
+      });
+    } catch (error) {
+      throw new NotFoundException(`Test with ID ${id} not found`);
+    }
   }
 }
