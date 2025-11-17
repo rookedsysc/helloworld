@@ -1,5 +1,10 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
-import { ApiNotFoundResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { TestService } from '../service/test.service';
 import { CreateTestRequest } from '../dto/create-test.request';
 import { CreateTestResponse } from '../dto/create-test.response';
@@ -13,6 +18,10 @@ export class TestController {
   constructor(private readonly testService: TestService) {}
 
   @ApiOperation({ summary: '테스트 목록 조회' })
+  @ApiOkResponse({
+    description: '테스트 목록 조회 성공',
+    type: [TestListResponse],
+  })
   @Get()
   async getTestList(
     @Query() request: PageRequest,
@@ -21,6 +30,10 @@ export class TestController {
   }
 
   @ApiOperation({ summary: '테스트 상세 조회' })
+  @ApiOkResponse({
+    description: '테스트 상세 조회 성공',
+    type: TestDetailResponse,
+  })
   @ApiNotFoundResponse({ description: '해당 ID의 테스트를 찾을 수 없습니다' })
   @Get(':id')
   async getTest(@Query('id') id: number): Promise<TestDetailResponse> {
@@ -28,6 +41,10 @@ export class TestController {
   }
 
   @ApiOperation({ summary: '테스트 데이터 생성' })
+  @ApiOkResponse({
+    description: '테스트 데이터 생성 성공',
+    type: CreateTestResponse,
+  })
   @Post()
   async createTest(
     @Body() request: CreateTestRequest,
