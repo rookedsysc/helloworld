@@ -4,7 +4,7 @@ import { CreateTestRequest } from '../dto/create-test.request';
 import { CreateTestResponse } from '../dto/create-test.response';
 import { PageRequest } from 'src/common/model/page.request';
 import { TestListResponse } from '../dto/test-list.response';
-import { Test } from 'generated/prisma';
+import { Test } from '@prisma/client';
 import { TestDetailResponse } from '../dto/test-detail.response';
 import { TestUpdateRequest as TestUpdateRequest } from '../dto/test-update.request';
 
@@ -62,6 +62,14 @@ export class TestService {
         title: request.title,
         content: request.content,
       });
+    } catch (error) {
+      throw new NotFoundException(`Test with ID ${id} not found`);
+    }
+  }
+
+  async deleteTest(id: number): Promise<void> {
+    try {
+      await this.testRepository.delete({ id });
     } catch (error) {
       throw new NotFoundException(`Test with ID ${id} not found`);
     }

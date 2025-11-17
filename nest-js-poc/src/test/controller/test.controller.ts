@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Post, Query } from '@nestjs/common';
 import {
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -64,5 +64,15 @@ export class TestController {
     @Body() request: TestUpdateRequest,
   ): Promise<void> {
     await this.testService.updateTest(id, request);
+  }
+
+  @ApiOperation({ summary: '테스트 데이터 삭제' })
+  @ApiOkResponse({
+    description: '테스트 데이터 삭제 성공',
+  })
+  @ApiNotFoundResponse({ description: '해당 ID의 테스트를 찾을 수 없습니다' })
+  @Delete(':id')
+  async deleteTest(@Query('id') id: number): Promise<void> {
+    await this.testService.deleteTest(id);
   }
 }

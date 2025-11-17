@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Test } from 'generated/prisma';
-import { Page } from 'src/common/model/page.response';
+import { Test } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -15,14 +14,15 @@ export class TestRepository {
     size: number;
   }): Promise<Test[]> {
     return await this.prisma.test.findMany({
+      where: { deleted_at: null },
       skip: (page - 1) * size,
       take: size,
     });
   }
 
   async findById({ id }: { id: number }): Promise<Test | null> {
-    return await this.prisma.test.findUnique({
-      where: { id },
+    return await this.prisma.test.findFirst({
+      where: { id: id, deleted_at: null },
     });
   }
 
@@ -51,6 +51,17 @@ export class TestRepository {
       data: {
         title: title ?? undefined,
         content: content ?? undefined,
+      },
+    });
+  }
+
+  async delete({ id }: { id: number }): Promise<void> {
+    await this.prisma.test.update({
+      where: {
+        id: id,
+      },
+      data: {
+        deleted_at: new Date().toUTCString(),
       },
     });
   }
