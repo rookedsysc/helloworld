@@ -9,6 +9,8 @@ group = "com.rokyai"
 version = "0.0.1-SNAPSHOT"
 description = "spring-ai-poc"
 
+
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
@@ -33,6 +35,9 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+    // https://mvnrepository.com/artifact/org.springdoc/springdoc-openapi-starter-webflux-ui
+    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:3.0.1")
 }
 
 kotlin {
