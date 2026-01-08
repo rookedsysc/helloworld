@@ -27,7 +27,9 @@ class OpenAiConfig {
     fun openAiApi(
         @Value("\${spring.ai.openai.api-key}") apiKey: String
     ): OpenAiApi {
-        return OpenAiApi(apiKey)
+        return OpenAiApi.builder()
+            .apiKey(apiKey)
+            .build()
     }
 
     /**
@@ -43,8 +45,8 @@ class OpenAiConfig {
         @Value("\${spring.ai.openai.chat.options.temperature:0.7}") temperature: Double
     ): OpenAiChatOptions {
         return OpenAiChatOptions.builder()
-            .withModel(model)
-            .withTemperature(temperature)
+            .model(model)
+            .temperature(temperature)
             .build()
     }
 
@@ -63,6 +65,9 @@ class OpenAiConfig {
         openAiApi: OpenAiApi,
         options: OpenAiChatOptions
     ): ChatModel {
-        return OpenAiChatModel(openAiApi, options)
+        return OpenAiChatModel.builder()
+            .openAiApi(openAiApi)
+            .defaultOptions(options)
+            .build()
     }
 }

@@ -9,7 +9,7 @@ group = "com.rokyai"
 version = "0.0.1-SNAPSHOT"
 description = "spring-ai-poc"
 
-
+extra["springAiVersion"] = "2.0.0-M1"
 
 java {
     toolchain {
@@ -32,8 +32,7 @@ dependencies {
     implementation("tools.jackson.module:jackson-module-kotlin")
 
     // Spring AI
-    implementation(platform("org.springframework.ai:spring-ai-bom:1.0.0-M4"))
-    implementation("org.springframework.ai:spring-ai-openai")
+    implementation("org.springframework.ai:spring-ai-starter-model-openai")
 
     // Swagger
     implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.7.0")
@@ -53,6 +52,12 @@ dependencies {
 
     // https://mvnrepository.com/artifact/org.springdoc/springdoc-openapi-starter-webflux-ui
     implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:3.0.1")
+}
+
+dependencyManagement {
+	imports {
+		mavenBom("org.springframework.ai:spring-ai-bom:${property("springAiVersion")}")
+	}
 }
 
 kotlin {

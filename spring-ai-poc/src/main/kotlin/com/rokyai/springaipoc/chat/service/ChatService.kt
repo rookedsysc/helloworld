@@ -8,6 +8,7 @@ import org.springframework.ai.chat.prompt.Prompt
 import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
+import reactor.core.scheduler.Schedulers
 
 /**
  * ChatGPT와 통신하는 서비스
@@ -22,18 +23,23 @@ class ChatService(
     /**
      * ChatGPT에게 메시지를 전송하고 응답을 받습니다.
      *
+     * WebFlux 환경에서 blocking 호출을 피하기 위해 boundedElastic 스케줄러를 사용합니다.
+     *
      * @param request 사용자가 보낼 메시지를 포함한 요청 객체
      * @return ChatGPT의 응답 메시지를 포함한 응답 객체
      */
     suspend fun chat(request: ChatRequest): ChatResponse {
         val prompt = Prompt(request.message)
 
-        // Spring AI의 ChatModel.call()은 동기 방식이므로 Mono로 감싸서 비동기 처리
+        // Spring AI의 ChatModel.call()은 동기 방식이므로 별도 스레드 풀에서 실행
+        // boundedElastic 스케줄러를 사용하여 reactor-http-nio 스레드의 blocking을 방지
         val response = Mono.fromCallable {
             chatModel.call(prompt)
-        }.awaitSingle()
+        }
+            .subscribeOn(Schedulers.boundedElastic())
+            .awaitSingle()
 
-        val generatedMessage = response.result?.output?.content
+        val generatedMessage = response.result?.output?.text
             ?: throw IllegalStateException("ChatGPT 응답 생성 실패")
 
         return ChatResponse(message = generatedMessage)
@@ -53,10 +59,10 @@ class ChatService(
 
         return chatModel.stream(prompt)
             .mapNotNull { response ->
-                response.result?.output?.content
+                response.result?.output?.text
             }
-            .filter { content ->
-                content.isNotBlank()
+            .filter { text ->
+                text.isNotBlank()
             }
             .onErrorResume { error ->
                 Flux.just("Error: ${error.message ?: "알 수 없는 오류가 발생했습니다."}")
