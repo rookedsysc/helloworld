@@ -19,6 +19,8 @@ java {
 
 repositories {
     mavenCentral()
+    maven { url = uri("https://repo.spring.io/milestone") }
+    maven { url = uri("https://repo.spring.io/snapshot") }
 }
 
 dependencies {
@@ -28,12 +30,25 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
     implementation("tools.jackson.module:jackson-module-kotlin")
+
+    // Spring AI
+    implementation(platform("org.springframework.ai:spring-ai-bom:1.0.0-M4"))
+    implementation("org.springframework.ai:spring-ai-openai")
+
+    // Swagger
+    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.7.0")
+
+    // Validation
+    implementation("org.springframework.boot:spring-boot-starter-validation")
+
     runtimeOnly("org.postgresql:postgresql")
 //    runtimeOnly("org.postgresql:r2dbc-postgresql")
 //    testImplementation("org.springframework.boot:spring-boot-starter-data-r2dbc-test")
     testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
+    testImplementation("io.mockk:mockk:1.13.13")
+    testImplementation("com.ninja-squad:springmockk:4.0.2")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     // https://mvnrepository.com/artifact/org.springdoc/springdoc-openapi-starter-webflux-ui

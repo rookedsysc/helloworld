@@ -1,0 +1,8 @@
+spring:
+  ai:
+    openai:
+      api-key: ${OPEN_AI}
+      chat:
+        options:
+          model: gpt-4o-mini
+          temperature: 0.7
