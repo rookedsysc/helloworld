@@ -2,6 +2,8 @@ package com.rokyai.springaipoc.chat.service
 
 import com.rokyai.springaipoc.chat.dto.ChatRequest
 import com.rokyai.springaipoc.chat.dto.ChatResponse
+import com.rokyai.springaipoc.chat.entity.ChatHistory
+import com.rokyai.springaipoc.chat.repository.ChatHistoryRepository
 import kotlinx.coroutines.reactor.awaitSingle
 import org.springframework.ai.chat.model.ChatModel
 import org.springframework.ai.chat.prompt.Prompt
@@ -9,6 +11,9 @@ import org.springframework.stereotype.Service
 import reactor.core.publisher.Flux
 import reactor.core.publisher.Mono
 import reactor.core.scheduler.Schedulers
+import java.time.LocalDateTime
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 
 /**
  * ChatGPT와 통신하는 서비스
@@ -18,7 +23,8 @@ import reactor.core.scheduler.Schedulers
  */
 @Service
 class ChatService(
-    private val chatModel: ChatModel
+    private val chatModel: ChatModel,
+    private val chatHistoryRepository: ChatHistoryRepository
 ) {
     /**
      * ChatGPT에게 메시지를 전송하고 응답을 받습니다.
@@ -42,6 +48,14 @@ class ChatService(
         val generatedMessage = response.result?.output?.text
             ?: throw IllegalStateException("ChatGPT 응답 생성 실패")
 
+        // 채팅 기록을 데이터베이스에 저장
+        val chatHistory = ChatHistory(
+            userMessage = request.message,
+            assistantMessage = generatedMessage,
+            createdAt = OffsetDateTime.now(ZoneOffset.UTC)
+        )
+        chatHistoryRepository.save(chatHistory).awaitSingle()
+
         return ChatResponse(message = generatedMessage)
     }
 
@@ -56,6 +70,7 @@ class ChatService(
      */
     fun chatStream(request: ChatRequest): Flux<String> {
         val prompt = Prompt(request.message)
+        val messageBuilder = StringBuilder()
 
         return chatModel.stream(prompt)
             .mapNotNull { response ->
@@ -63,6 +78,19 @@ class ChatService(
             }
             .filter { text ->
                 text.isNotBlank()
+            }
+            .doOnNext { text ->
+                // 스트리밍되는 각 텍스트 청크를 수집
+                messageBuilder.append(text)
+            }
+            .doOnComplete {
+                // 스트리밍이 완료되면 채팅 기록을 데이터베이스에 저장
+                val chatHistory = ChatHistory(
+                    userMessage = request.message,
+                    assistantMessage = messageBuilder.toString(),
+                    createdAt = OffsetDateTime.now(ZoneOffset.UTC)
+                )
+                chatHistoryRepository.save(chatHistory).subscribe()
             }
             .onErrorResume { error ->
                 Flux.just("Error: ${error.message ?: "알 수 없는 오류가 발생했습니다."}")
