@@ -1,0 +1,17 @@
+spring:
+  config:
+    import: optional:file:.env[.properties]
+  ai:
+    openai:
+      api-key: ${OPEN_AI}
+      chat:
+        options:
+          model: gpt-4o-mini
+          temperature: 0.7
+  r2dbc:
+    url: r2dbc:postgresql://192.168.36.161:5432/spring_ai_poc_db
+    username: root
+    password: 1234
+  sql:
+    init:
+      mode: always

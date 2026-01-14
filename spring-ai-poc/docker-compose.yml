@@ -1,0 +1,10 @@
+services:
+  db:
+    image: postgres:15.3
+    container_name: spring-ai-poc-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: spring_ai_poc_db
