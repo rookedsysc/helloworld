@@ -1,0 +1,712 @@
+# Java OpenTelemetry SDK로 Grafana Tempo, Loki, OTel Collector 구성하기
+
+## 개요
+
+이 문서는 Java 애플리케이션에서 OpenTelemetry SDK를 사용해 다음 구성을 만드는 방법을 정리합니다.
+
+```text
+Java Application
+  -> OTLP traces/logs
+OpenTelemetry Collector
+  -> traces -> Grafana Tempo
+  -> logs   -> Grafana Loki
+Grafana
+  -> Tempo datasource
+  -> Loki datasource
+```
+
+질문 의도에 맞춰 다음을 함께 다룹니다.
+
+- Java OpenTelemetry SDK를 어떤 방식으로 초기화하는지
+- traceId / spanId가 어떻게 생성되고 전파되는지
+- 로그를 Loki로 보내려면 Java에서 무엇을 붙여야 하는지
+- OTel Collector, Tempo, Loki는 각각 어떻게 연결되는지
+- 실제 Maven/Java/Collector 설정 예시
+
+## 결론
+
+가장 무난한 실무 구성은 아래와 같습니다.
+
+- Java 애플리케이션은 `OpenTelemetry SDK`를 사용해 traces와 logs를 `OTLP`로 보냅니다.
+- 애플리케이션은 `Tempo`나 `Loki`에 직접 보내지 않고 `OTel Collector`만 바라보게 둡니다.
+- Collector가 `traces -> Tempo`, `logs -> Loki`로 분기합니다.
+- Grafana는 Tempo와 Loki를 각각 datasource로 붙여서 조회합니다.
+
+Java 쪽 구현은 보통 두 가지 중 하나입니다.
+
+- 가장 단순한 방식: `AutoConfiguredOpenTelemetrySdk` + 환경 변수
+- 더 세밀한 방식: `OpenTelemetrySdk.builder()`로 tracer/log SDK를 코드에서 직접 구성
+
+이번 문서에서는 둘 다 보여주되, 운영 관점 기본 추천은 `autoconfigure + 필요한 수동 span 추가`입니다.
+
+## 아키텍처
+
+### 전체 구조
+
+```text
+HTTP Client
+  -> Java App
+       -> OpenTelemetry SDK
+            -> traces: OTLP /v1/traces
+            -> logs:   OTLP /v1/logs
+  -> OpenTelemetry Collector
+       -> traces pipeline -> Tempo
+       -> logs pipeline   -> Loki
+Grafana
+  -> Query Tempo traces
+  -> Query Loki logs
+```
+
+### 역할 분리
+
+- `Java OpenTelemetry SDK`
+  - trace/span 생성
+  - context propagation
+  - OTLP export
+
+- `OpenTelemetry Collector`
+  - 공통 ingress
+  - batch / retry / queue / enrichment
+  - backend fan-out
+
+- `Tempo`
+  - trace storage backend
+
+- `Loki`
+  - log storage backend
+
+- `Grafana`
+  - Tempo/Loki 조회 UI
+
+## 왜 Collector를 중간에 두는가
+
+Java 애플리케이션이 Tempo와 Loki를 직접 바라보게 만들 수도 있지만, 운영에서는 Collector를 두는 편이 일반적입니다.
+
+이유는 다음과 같습니다.
+
+- 앱은 OTLP 하나만 알면 됩니다.
+- backend 교체 시 애플리케이션 변경을 줄일 수 있습니다.
+- Collector에서 재시도, 배치, queue, attribute 처리, 샘플링을 공통으로 제어할 수 있습니다.
+- traces와 logs를 각기 다른 backend로 자연스럽게 분리할 수 있습니다.
+
+## Java SDK 구성 전략
+
+### 권장안
+
+`AutoConfiguredOpenTelemetrySdk`로 SDK를 띄우고, 필요한 비즈니스 span만 코드로 추가합니다.
+
+이렇게 하면:
+
+- exporter endpoint 같은 값은 환경 변수로 바꿀 수 있고
+- 코드에서는 `Tracer`를 통해 필요한 span만 추가하면 됩니다.
+
+### 로그 구성 전략
+
+로그는 Java logging framework가 직접 OTel 로그 SDK에 브리지되어야 합니다.
+
+실무에서 가장 흔한 조합은 다음입니다.
+
+- 애플리케이션 로그: `SLF4J + Logback`
+- OTel 로그 브리지: `opentelemetry-logback-appender-1.0`
+- 콘솔에서 traceId/spanId 같이 보고 싶으면: `opentelemetry-logback-mdc-1.0`
+
+## Maven 의존성 예시
+
+아래는 Java SDK + OTLP exporter + Logback appender를 사용하는 예시입니다.
+
+```xml
+<dependencies>
+  <dependency>
+    <groupId>io.opentelemetry</groupId>
+    <artifactId>opentelemetry-api</artifactId>
+    <version>1.60.1</version>
+  </dependency>
+
+  <dependency>
+    <groupId>io.opentelemetry</groupId>
+    <artifactId>opentelemetry-sdk</artifactId>
+    <version>1.60.1</version>
+  </dependency>
+
+  <dependency>
+    <groupId>io.opentelemetry</groupId>
+    <artifactId>opentelemetry-exporter-otlp</artifactId>
+    <version>1.60.1</version>
+  </dependency>
+
+  <dependency>
+    <groupId>io.opentelemetry</groupId>
+    <artifactId>opentelemetry-sdk-extension-autoconfigure</artifactId>
+    <version>1.60.1</version>
+  </dependency>
+
+  <dependency>
+    <groupId>io.opentelemetry.instrumentation</groupId>
+    <artifactId>opentelemetry-logback-appender-1.0</artifactId>
+    <version>2.26.1-alpha</version>
+  </dependency>
+
+  <dependency>
+    <groupId>io.opentelemetry.instrumentation</groupId>
+    <artifactId>opentelemetry-logback-mdc-1.0</artifactId>
+    <version>2.26.1-alpha</version>
+    <scope>runtime</scope>
+  </dependency>
+
+  <dependency>
+    <groupId>org.slf4j</groupId>
+    <artifactId>slf4j-api</artifactId>
+    <version>2.0.17</version>
+  </dependency>
+
+  <dependency>
+    <groupId>ch.qos.logback</groupId>
+    <artifactId>logback-classic</artifactId>
+    <version>1.5.18</version>
+  </dependency>
+</dependencies>
+```
+
+## Java 코드 예시 1: autoconfigure 기반 SDK 초기화
+
+이 예시는 SDK 자체는 환경 변수 기반으로 설정하고, 코드에서는 `Tracer`와 `Logger`만 사용합니다.
+
+### `TelemetryBootstrap.java`
+
+```java
+package example.otel;
+
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk;
+
+public final class TelemetryBootstrap {
+
+  private TelemetryBootstrap() {
+  }
+
+  public static OpenTelemetry init() {
+    OpenTelemetrySdk sdk = AutoConfiguredOpenTelemetrySdk.initialize().getOpenTelemetrySdk();
+
+    // Logback OpenTelemetryAppender가 SDK 인스턴스를 사용할 수 있게 연결한다.
+    OpenTelemetryAppender.install(sdk);
+
+    return GlobalOpenTelemetry.get();
+  }
+}
+```
+
+### `PaymentService.java`
+
+```java
+package example.otel;
+
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.context.Scope;
+import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class PaymentService {
+
+  private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
+
+  private final Tracer tracer;
+
+  public PaymentService(OpenTelemetry openTelemetry) {
+    this.tracer = openTelemetry.getTracer("example.payment-service", "1.0.0");
+  }
+
+  public void approvePayment(String orderId, long amount) {
+    String transactionId = UUID.randomUUID().toString();
+
+    Span span = tracer.spanBuilder("payment.approve")
+        .setSpanKind(SpanKind.INTERNAL)
+        .setAttribute("app.transaction_id", transactionId)
+        .setAttribute("app.order_id", orderId)
+        .setAttribute("app.amount", amount)
+        .startSpan();
+
+    try (Scope ignored = span.makeCurrent()) {
+      // 현재 스코프 안에서 찍는 로그는 trace/span context와 자동 상관관계가 생긴다.
+      log.info("payment approval started orderId={} transactionId={} amount={}", orderId, transactionId, amount);
+
+      validate(orderId, amount);
+      callPg(orderId, amount);
+
+      log.info("payment approval completed orderId={} transactionId={}", orderId, transactionId);
+    } catch (Exception e) {
+      span.recordException(e);
+      span.setStatus(StatusCode.ERROR, "payment approval failed");
+      log.error("payment approval failed orderId={} transactionId={}", orderId, transactionId, e);
+      throw e;
+    } finally {
+      span.end();
+    }
+  }
+
+  private void validate(String orderId, long amount) {
+    if (orderId == null || orderId.isBlank()) {
+      throw new IllegalArgumentException("orderId is required");
+    }
+    if (amount <= 0) {
+      throw new IllegalArgumentException("amount must be positive");
+    }
+  }
+
+  private void callPg(String orderId, long amount) {
+    // 예시용 비즈니스 로직
+  }
+}
+```
+
+### `Main.java`
+
+```java
+package example.otel;
+
+import io.opentelemetry.api.OpenTelemetry;
+
+public class Main {
+  public static void main(String[] args) {
+    OpenTelemetry openTelemetry = TelemetryBootstrap.init();
+
+    PaymentService paymentService = new PaymentService(openTelemetry);
+    paymentService.approvePayment("ORDER-1001", 12900L);
+  }
+}
+```
+
+## Java 코드 예시 2: programmatic SDK 직접 구성
+
+환경 변수 대신 코드에서 endpoint와 processor를 직접 지정하고 싶다면 아래처럼 구성할 수 있습니다.
+
+### `ProgrammaticTelemetryConfig.java`
+
+```java
+package example.otel;
+
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
+import io.opentelemetry.context.propagation.ContextPropagators;
+import io.opentelemetry.exporter.otlp.http.logs.OtlpHttpLogRecordExporter;
+import io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter;
+import io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender;
+import io.opentelemetry.sdk.OpenTelemetrySdk;
+import io.opentelemetry.sdk.logs.SdkLoggerProvider;
+import io.opentelemetry.sdk.logs.export.BatchLogRecordProcessor;
+import io.opentelemetry.sdk.resources.Resource;
+import io.opentelemetry.sdk.trace.SdkTracerProvider;
+import io.opentelemetry.sdk.trace.export.BatchSpanProcessor;
+import io.opentelemetry.semconv.ServiceAttributes;
+import java.time.Duration;
+
+public final class ProgrammaticTelemetryConfig {
+
+  private ProgrammaticTelemetryConfig() {
+  }
+
+  public static OpenTelemetry init() {
+    Resource resource = Resource.getDefault().toBuilder()
+        .put(ServiceAttributes.SERVICE_NAME, "payment-api")
+        .put("deployment.environment.name", "local")
+        .put("service.version", "1.0.0")
+        .build();
+
+    OtlpHttpSpanExporter spanExporter = OtlpHttpSpanExporter.builder()
+        .setEndpoint("http://otel-collector:4318/v1/traces")
+        .setTimeout(Duration.ofSeconds(10))
+        .build();
+
+    OtlpHttpLogRecordExporter logExporter = OtlpHttpLogRecordExporter.builder()
+        .setEndpoint("http://otel-collector:4318/v1/logs")
+        .setTimeout(Duration.ofSeconds(10))
+        .build();
+
+    SdkTracerProvider tracerProvider = SdkTracerProvider.builder()
+        .setResource(resource)
+        .addSpanProcessor(
+            BatchSpanProcessor.builder(spanExporter)
+                .setMaxQueueSize(2048)
+                .setScheduleDelay(Duration.ofSeconds(5))
+                .build())
+        .build();
+
+    SdkLoggerProvider loggerProvider = SdkLoggerProvider.builder()
+        .setResource(resource)
+        .addLogRecordProcessor(
+            BatchLogRecordProcessor.builder(logExporter)
+                .setMaxQueueSize(2048)
+                .setScheduleDelay(Duration.ofSeconds(1))
+                .build())
+        .build();
+
+    OpenTelemetrySdk sdk = OpenTelemetrySdk.builder()
+        .setTracerProvider(tracerProvider)
+        .setLoggerProvider(loggerProvider)
+        .setPropagators(ContextPropagators.create(W3CTraceContextPropagator.getInstance()))
+        .build();
+
+    OpenTelemetryAppender.install(sdk);
+    Runtime.getRuntime().addShutdownHook(new Thread(sdk::close));
+
+    return sdk;
+  }
+}
+```
+
+## Logback 설정 예시
+
+OpenTelemetry Logback appender는 Logback 이벤트를 OTel Log SDK로 전달합니다.
+
+추가로 MDC appender를 감싸면 콘솔에서도 `trace_id`, `span_id`를 바로 볼 수 있습니다.
+
+### `logback.xml`
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} trace_id=%X{trace_id} span_id=%X{span_id} %-5level %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <appender name="OTEL_MDC" class="io.opentelemetry.instrumentation.logback.mdc.v1_0.OpenTelemetryAppender">
+    <appender-ref ref="CONSOLE"/>
+  </appender>
+
+  <appender name="OTEL_EXPORT" class="io.opentelemetry.instrumentation.logback.appender.v1_0.OpenTelemetryAppender">
+    <captureMdcAttributes>*</captureMdcAttributes>
+    <captureCodeAttributes>false</captureCodeAttributes>
+    <captureExperimentalAttributes>true</captureExperimentalAttributes>
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="OTEL_MDC"/>
+    <appender-ref ref="OTEL_EXPORT"/>
+  </root>
+</configuration>
+```
+
+## autoconfigure용 환경 변수 예시
+
+Collector를 경유해서 traces/logs를 모두 보내려면 아래처럼 둘 수 있습니다.
+
+```bash
+export OTEL_SERVICE_NAME="payment-api"
+export OTEL_RESOURCE_ATTRIBUTES="deployment.environment.name=local,service.version=1.0.0"
+
+export OTEL_TRACES_EXPORTER="otlp"
+export OTEL_LOGS_EXPORTER="otlp"
+export OTEL_METRICS_EXPORTER="none"
+
+export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
+export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT="http://otel-collector:4318/v1/traces"
+export OTEL_EXPORTER_OTLP_LOGS_ENDPOINT="http://otel-collector:4318/v1/logs"
+
+export OTEL_PROPAGATORS="tracecontext,baggage"
+export OTEL_BSP_SCHEDULE_DELAY="5000"
+export OTEL_BLRP_SCHEDULE_DELAY="1000"
+```
+
+## Collector 설정 예시
+
+Collector는 애플리케이션에서 traces/logs를 받고, traces는 Tempo, logs는 Loki로 전달합니다.
+
+### `otel-collector.yaml`
+
+```yaml
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 512
+    spike_limit_mib: 128
+  batch:
+    send_batch_size: 1024
+    timeout: 5s
+  resource:
+    attributes:
+      - key: collector.name
+        value: main-collector
+        action: upsert
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  file_storage:
+    directory: /var/lib/otelcol
+
+exporters:
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+    sending_queue:
+      storage: file_storage
+      queue_size: 5000
+
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
+
+  debug:
+    verbosity: basic
+
+service:
+  extensions: [health_check, file_storage]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlp/tempo, debug]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp/loki, debug]
+```
+
+## Tempo 설정 예시
+
+Tempo는 Collector가 보내는 OTLP traces를 받으면 됩니다.
+
+### `tempo.yaml`
+
+```yaml
+server:
+  http_listen_port: 3200
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+ingester:
+  trace_idle_period: 5s
+  max_block_bytes: 1048576
+  max_block_duration: 5m
+
+compactor:
+  compaction:
+    block_retention: 24h
+
+storage:
+  trace:
+    backend: local
+    local:
+      path: /tmp/tempo/blocks
+    wal:
+      path: /tmp/tempo/wal
+```
+
+## Loki 설정 예시
+
+Loki는 OTLP logs 수신을 위해 structured metadata 허용이 중요합니다.
+
+### `loki-config.yaml`
+
+```yaml
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+
+common:
+  path_prefix: /loki
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+    - from: 2024-01-01
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+storage_config:
+  filesystem:
+    directory: /loki/chunks
+
+limits_config:
+  allow_structured_metadata: true
+```
+
+## traceId / spanId / transactionId는 어떻게 다뤄야 하나
+
+### traceId, spanId
+
+이 둘은 OpenTelemetry SDK가 span 생성 시 자동으로 관리합니다.
+
+- `traceId`: 하나의 전체 요청 흐름
+- `spanId`: 개별 작업 단위
+
+개발자가 직접 UUID를 만들어 관리하는 대상이 아닙니다.
+
+### transactionId
+
+이건 OTel 표준 필드가 아니라 보통 비즈니스 식별자입니다.
+
+예를 들면 다음이 transactionId 후보입니다.
+
+- 주문 승인 요청 ID
+- 결제 트랜잭션 ID
+- 외부 PG 거래번호
+
+이 값은 span attribute와 log field에 같이 넣는 편이 좋습니다.
+
+예시:
+
+```java
+span.setAttribute("app.transaction_id", transactionId);
+log.info("payment requested transactionId={}", transactionId);
+```
+
+그러면 Grafana에서:
+
+- Tempo에서는 trace 단위로 보고
+- Loki에서는 transactionId나 trace_id로 로그를 찾을 수 있습니다.
+
+## 어떤 방식이 더 적합한가
+
+### autoconfigure가 더 좋은 경우
+
+- 운영 환경별 endpoint를 코드 수정 없이 바꾸고 싶음
+- Collector endpoint, timeout, sampler를 환경 변수로 제어하고 싶음
+- Spring Boot / Java agent / 공통 운영 방식을 맞추고 싶음
+
+### programmatic configuration이 더 좋은 경우
+
+- exporter, processor, sampler를 코드에서 강하게 통제해야 함
+- 일부 서비스만 특수 설정이 필요함
+- 커스텀 processor / exporter / resource 로직이 필요함
+
+실무에서는 둘을 섞기도 합니다.
+
+- 기본은 autoconfigure
+- 필요한 수동 span과 attribute 추가는 코드
+
+## 운영 시 체크 포인트
+
+### 1. 로그를 Loki에 보내려면 Java만 설정해서 끝나지 않습니다
+
+아래가 모두 맞아야 합니다.
+
+- Java 앱에서 OTel Log SDK로 export
+- Collector logs pipeline 활성화
+- Collector에서 `otlphttp`로 Loki `/otlp` endpoint 연결
+- Loki에서 `allow_structured_metadata: true`
+
+### 2. trace와 logs의 상관관계는 span 스코프 안에서 로그를 찍어야 잘 붙습니다
+
+현재 active span이 있는 스코프에서 로그를 남겨야 traceId/spanId correlation이 자연스럽습니다.
+
+### 3. 신규 구성은 direct-to-backend보다 Collector 중심이 낫습니다
+
+Tempo와 Loki를 함께 쓰는 순간 Collector가 중간에 있는 편이 운영/이관/확장에 유리합니다.
+
+## 참고 자료와 근거 인용
+
+### 1. Grafana는 application에서 Alloy 또는 OpenTelemetry Collector로 데이터를 보낼 수 있다고 안내함
+
+출처: [Set up your collector](https://grafana.com/docs/tempo/latest/set-up-for-tracing/instrument-send/set-up-collector/)
+
+> "You can send data from your application using Grafana Alloy or OpenTelemetry Collector (OTel) collectors."
+
+### 2. Java instrumentation 문서는 Java agent부터 시작하길 권장함
+
+출처: [Instrumentation ecosystem](https://opentelemetry.io/docs/languages/java/instrumentation/)
+
+> "Java agent"
+
+### 3. Java manual instrumentation은 Java agent가 있더라도 `GlobalOpenTelemetry`와 함께 동작하도록 설계되어야 함
+
+출처: [Instrumentation ecosystem](https://opentelemetry.io/docs/languages/java/instrumentation/)
+
+> "Manual instrumentation"
+
+### 4. Java SDK는 `SdkTracerProvider`, `SdkLoggerProvider`, `TextMapPropagator` 등으로 구성됨
+
+출처: [Manage Telemetry with SDK](https://opentelemetry.io/docs/languages/java/sdk/)
+
+> "The SDK consists of the following top level components"
+
+### 5. Java SDK는 `OpenTelemetrySdk`에 tracer, meter, logger provider를 묶을 수 있음
+
+출처: [Manage Telemetry with SDK](https://opentelemetry.io/docs/languages/java/sdk/)
+
+> "OpenTelemetrySdk"
+
+### 6. autoconfigure 모듈은 zero-code SDK configuration을 제공함
+
+출처: [Configure the SDK](https://opentelemetry.io/docs/languages/java/configuration/)
+
+> "through system properties or environment variables"
+
+### 7. OTLP endpoint는 보통 Collector 주소를 가리킴
+
+출처: [Configure the SDK](https://opentelemetry.io/docs/languages/java/configuration/)
+
+> "Often the address of an OpenTelemetry Collector."
+
+### 8. Java Logback appender는 Logback 이벤트를 OpenTelemetry Log SDK로 전달함
+
+출처: [Logback Appender README](https://raw.githubusercontent.com/open-telemetry/opentelemetry-java-instrumentation/main/instrumentation/logback/logback-appender-1.0/library/README.md)
+
+> "OpenTelemetry Log SDK"
+
+### 9. Java Logback MDC instrumentation은 trace ID와 span ID를 로그에 주입함
+
+출처: [Logback MDC README](https://raw.githubusercontent.com/open-telemetry/opentelemetry-java-instrumentation/main/instrumentation/logback/logback-mdc-1.0/library/README.md)
+
+> "injecting the trace ID and span ID"
+
+### 10. Loki에 OTel logs를 넣을 때는 `otlphttp` exporter를 써야 함
+
+출처: [Ingesting logs to Loki using OpenTelemetry Collector](https://grafana.com/docs/loki/latest/send-data/otel/)
+
+> "otlphttp"
+
+### 11. Loki는 `allow_structured_metadata`를 true로 둬야 함
+
+출처: [Ingesting logs to Loki using OpenTelemetry Collector](https://grafana.com/docs/loki/latest/send-data/otel/)
+
+> "allow_structured_metadata"
+
+## 요약
+
+Java OpenTelemetry SDK로 Tempo/Loki/Collector를 묶는 가장 현실적인 구성은 이것입니다.
+
+- Java 앱은 `OpenTelemetry SDK`를 사용한다.
+- trace는 `OTLP -> Collector -> Tempo`
+- log는 `Logback Appender -> OTel Log SDK -> OTLP -> Collector -> Loki`
+- Grafana는 `Tempo + Loki` datasource로 조회한다.
+- `traceId`, `spanId`는 SDK가 관리하고, `transactionId`는 비즈니스 attribute로 직접 넣는다.
+
+원하시면 다음 단계로 이어서 바로 만들어드릴 수 있습니다.
+
+1. Maven 기준 샘플 프로젝트 구조까지 더 자세히 작성
+2. Spring Boot 기준으로 controller/filter 예시까지 확장
+3. Docker Compose 파일까지 실제 실행 가능한 형태로 생성
