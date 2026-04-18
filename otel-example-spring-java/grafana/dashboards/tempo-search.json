@@ -1,0 +1,58 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "id": null,
+  "panels": [
+    {
+      "datasource": { "type": "tempo", "uid": "tempo" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 14, "w": 24, "x": 0, "y": 0 },
+      "id": 2,
+      "options": { "showHeader": true },
+      "targets": [
+        {
+          "datasource": { "type": "tempo", "uid": "tempo" },
+          "limit": 20,
+          "query": "{ trace:rootService = \"otel-example-spring-java\" } && { resource.deployment.environment.name =~ \"${environment}\" } && { trace:id =~ \"${traceId}\" } && { span:id =~ \"${spanId}\" } && { span.app.transaction_id =~ \"${transactionId}\" } with (most_recent=true)",
+          "queryType": "traceql",
+          "tableType": "traces",
+          "refId": "A"
+        }
+      ],
+      "title": "Trace Search Results",
+      "type": "table"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 41,
+  "tags": ["tempo", "traceql", "search"],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".*",
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "definition": "label_values(process_uptime_seconds{application=\"otel-example-spring-java\"}, environment)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "environment",
+        "multi": false,
+        "name": "environment",
+        "options": [],
+        "query": { "query": "label_values(process_uptime_seconds{application=\"otel-example-spring-java\"}, environment)", "refId": "StandardVariableQuery" },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      { "name": "traceId", "label": "traceId", "type": "textbox", "query": ".*", "current": { "text": ".*", "value": ".*" } },
+      { "name": "transactionId", "label": "transactionId", "type": "textbox", "query": ".*", "current": { "text": ".*", "value": ".*" } },
+      { "name": "spanId", "label": "spanId", "type": "textbox", "query": ".*", "current": { "text": ".*", "value": ".*" } }
+    ]
+  },
+  "time": { "from": "now-15m", "to": "now" },
+  "title": "Tempo Search",
+  "uid": "tempo-search",
+  "version": 5
+}
