@@ -1,0 +1,56 @@
+app:
+  environment: ${APP_ENV:local-demo}
+
+spring:
+  application:
+    name: otel-example-spring-java
+
+server:
+  port: 8080
+
+management:
+  metrics:
+    tags:
+      application: otel-example-spring-java
+      environment: ${app.environment}
+    distribution:
+      percentiles-histogram:
+        http:
+          server:
+            requests: true
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+otel:
+  service:
+    name: otel-example-spring-java
+  propagators:
+    - tracecontext
+    - baggage
+  resource:
+    attributes:
+      deployment.environment.name: ${app.environment}
+      service.version: 0.0.1-SNAPSHOT
+  traces:
+    exporter: otlp
+  logs:
+    exporter: otlp
+  metrics:
+    exporter: none
+  exporter:
+    otlp:
+      protocol: http/protobuf
+      endpoint: http://otel-collector:4318
+  instrumentation:
+    logback-appender:
+      experimental:
+        capture-mdc-attributes: "*"
