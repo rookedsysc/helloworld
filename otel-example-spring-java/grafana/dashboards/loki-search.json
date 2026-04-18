@@ -1,0 +1,65 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "id": null,
+  "panels": [
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 16, "w": 24, "x": 0, "y": 0 },
+      "id": 2,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "editorMode": "code",
+          "expr": "{service_name=\"otel-example-spring-java\",deployment_environment_name=~\"${environment}\"} |= \"${traceId}\" |= \"${transactionId}\" |= \"${spanId}\" |= \"${errorMessage}\"",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Filtered Logs",
+      "type": "logs"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 41,
+  "tags": ["loki", "search"],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".*",
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "definition": "label_values(process_uptime_seconds{application=\"otel-example-spring-java\"}, environment)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "environment",
+        "multi": false,
+        "name": "environment",
+        "options": [],
+        "query": { "query": "label_values(process_uptime_seconds{application=\"otel-example-spring-java\"}, environment)", "refId": "StandardVariableQuery" },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      { "name": "traceId", "label": "traceId", "type": "textbox", "query": "", "current": { "text": "", "value": "" } },
+      { "name": "transactionId", "label": "transactionId", "type": "textbox", "query": "", "current": { "text": "", "value": "" } },
+      { "name": "spanId", "label": "spanId", "type": "textbox", "query": "", "current": { "text": "", "value": "" } },
+      { "name": "errorMessage", "label": "errorMessage", "type": "textbox", "query": "", "current": { "text": "", "value": "" } }
+    ]
+  },
+  "time": { "from": "now-15m", "to": "now" },
+  "title": "Loki Search",
+  "uid": "loki-search",
+  "version": 3
+}
