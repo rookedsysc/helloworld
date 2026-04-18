@@ -63,7 +63,7 @@ services:
       - ./grafana/dashboards:/var/lib/grafana/dashboards
       - grafana-data:/var/lib/grafana
     ports:
-      - "3110:3000"
+      - "3000:3000"
     depends_on:
       prometheus:
         condition: service_started
