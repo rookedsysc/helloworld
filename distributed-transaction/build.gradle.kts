@@ -52,6 +52,9 @@ subprojects {
         "testImplementation"("org.jetbrains.kotlin:kotlin-test-junit5")
         "testRuntimeOnly"("org.junit.platform:junit-platform-launcher")
 
+        // kafka
+        "implementation"("org.springframework.kafka:spring-kafka")
+
         // aop
         "implementation"("org.springframework.boot:spring-boot-starter-aop")
     }

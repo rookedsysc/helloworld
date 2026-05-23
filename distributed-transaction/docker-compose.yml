@@ -19,6 +19,12 @@ services:
     volumes:
       - redis-data:/data
 
+  dt-kafka:
+    image: apache/kafka:4.2.0
+    container_name: dt-kafka
+    ports:
+      - "9092:9092"
+
   dt-prometheus:
     image: prom/prometheus:latest
     container_name: dt-prometheus
