@@ -1,6 +1,6 @@
 package com.rookedsysc.order.infrastructure.`in`
 
-import com.rookedsysc.order.application.OrderCoordinator
+import com.rookedsysc.order.application.OrderChoreographyService
 import com.rookedsysc.order.application.OrderService
 import com.rookedsysc.order.application.dto.CreateOrderResult
 import com.rookedsysc.order.infrastructure.`in`.dto.CreateOrderRequest
@@ -17,7 +17,8 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("orders")
 class OrderController(
-    private val orderService: OrderService, private val orderCoordinator: OrderCoordinator
+    private val orderService: OrderService,
+    private val orderChoreographyService: OrderChoreographyService,
 ) {
 
     @Operation(summary = "주문 생성")
@@ -34,6 +35,6 @@ class OrderController(
     fun placeOrder(
         @RequestBody request: PlaceOrderRequest
     ) {
-        return orderCoordinator.placeOrder(command = request.toCommand())
+        return orderChoreographyService.placeOrder(command = request.toCommand())
     }
 }
