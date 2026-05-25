@@ -9,7 +9,7 @@ spring:
     show-sql: true
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://192.168.36.161:23306/product_db
+    url: jdbc:mysql://localhost:23306/product_db
     username: root
     password: 1234
 
@@ -32,7 +32,7 @@ spring:
 
   data:
     redis:
-      host: 192.168.36.161
+      host: localhost
       port: 26379
       password: 1234
       timeout: 10000ms
