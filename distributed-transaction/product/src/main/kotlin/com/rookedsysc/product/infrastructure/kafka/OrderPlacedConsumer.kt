@@ -11,6 +11,8 @@ import com.rookedsysc.product.infrastructure.kafka.dto.OrderPlacedEvent
 import com.rookedsysc.product.infrastructure.kafka.dto.QuantityDecreasedEvent
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
+import org.springframework.transaction.support.TransactionSynchronization
+import org.springframework.transaction.support.TransactionSynchronizationManager
 
 @Component
 class OrderPlacedConsumer(
@@ -29,7 +31,7 @@ class OrderPlacedConsumer(
         val requestId = event.orderId.toString()
 
         try {
-            val result: BunchProductBuyResult = productService.buy(
+            productService.buy(
                 BunchProductBuyCommand(
                     requestId = requestId,
                     productInfos = event.productInfos.map { item ->
@@ -39,14 +41,9 @@ class OrderPlacedConsumer(
                         )
                     },
                 )
-            )
-
-            quantityDecreasedProducer.send(
-                QuantityDecreasedEvent(
-                    orderId = event.orderId,
-                    totalPrice = result.totalPrice,
-                )
-            )
+            ) { result ->
+                sendQuantityDecreasedAfterCommit(event, result)
+            }
         } catch (e: Exception) {
             productService.cancel(
                 BunchProductCancelCommand(requestId = requestId)
@@ -56,5 +53,24 @@ class OrderPlacedConsumer(
                 QuantityDecreasedFailEvent(orderId = event.orderId)
             )
         }
+    }
+
+    private fun sendQuantityDecreasedAfterCommit(
+        event: OrderPlacedEvent,
+        result: BunchProductBuyResult,
+    ) {
+        TransactionSynchronizationManager.registerSynchronization(
+            object : TransactionSynchronization {
+                override fun afterCommit() {
+                    quantityDecreasedProducer.send(
+                        QuantityDecreasedEvent(
+                            orderId = event.orderId,
+                            userId = event.userId,
+                            totalPrice = result.totalPrice,
+                        )
+                    )
+                }
+            }
+        )
     }
 }

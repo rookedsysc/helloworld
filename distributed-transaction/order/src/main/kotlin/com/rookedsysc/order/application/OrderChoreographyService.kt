@@ -41,6 +41,7 @@ class OrderChoreographyService(
                     orderPlacedProducer.send(
                         OrderPlacedEvent(
                             orderId = command.orderId,
+                            userId = order.userId,
                             productInfos = productInfos,
                         )
                     )

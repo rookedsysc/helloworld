@@ -8,6 +8,8 @@ import com.rookedsysc.point.domain.PointTransactionHistory
 import com.rookedsysc.point.infrastructure.out.PointRepository
 import com.rookedsysc.point.infrastructure.out.PointTransactionHistoryRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.support.TransactionSynchronization
+import org.springframework.transaction.support.TransactionSynchronizationManager
 
 @Service
 class PointUseService(
@@ -18,7 +20,10 @@ class PointUseService(
         key = "product:orchestration:{command.requestId}",
         fairLock = true
     )
-    fun use(command: PointUseCommand) {
+    fun use(
+        command: PointUseCommand,
+        afterCommit: () -> Unit = {},
+    ) {
         val pointTransactionHistory: PointTransactionHistory? =
             pointTransactionHistoryRepository.findByRequestIdAndTransactionType(
                 requestId = command.requestId,
@@ -31,6 +36,7 @@ class PointUseService(
             ?: let { throw RuntimeException("존재하지 않는 User ID 입니다.") }
 
         point.use(command.amount)
+        pointRepository.save(point)
         pointTransactionHistoryRepository.save(
             PointTransactionHistory(
                 requestId = command.requestId,
@@ -39,6 +45,8 @@ class PointUseService(
                 transactionType = PointTransactionHistory.TransactionType.USE
             )
         )
+
+        registerAfterCommit(afterCommit)
     }
 
 
@@ -69,6 +77,7 @@ class PointUseService(
         val point = pointRepository.findById(useHistory.pointId).orElseThrow()
 
         point.cancel(useHistory.amount)
+        pointRepository.save(point)
         pointTransactionHistoryRepository.save(
             PointTransactionHistory(
                 requestId = command.requestId,
@@ -76,6 +85,21 @@ class PointUseService(
                 amount = useHistory.amount,
                 transactionType = PointTransactionHistory.TransactionType.CANCEL
             )
+        )
+    }
+
+    private fun registerAfterCommit(action: () -> Unit) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            action()
+            return
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(
+            object : TransactionSynchronization {
+                override fun afterCommit() {
+                    action()
+                }
+            }
         )
     }
 }

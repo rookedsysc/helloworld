@@ -2,6 +2,7 @@ package com.rookedsysc.product.infrastructure.kafka.dto
 
 data class OrderPlacedEvent(
     val orderId: Long,
+    val userId: Long,
     val productInfos: List<ProductInfo>,
 ) {
     data class ProductInfo(

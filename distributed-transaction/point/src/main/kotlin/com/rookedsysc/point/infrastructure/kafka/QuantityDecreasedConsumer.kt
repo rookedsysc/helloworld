@@ -31,12 +31,12 @@ class QuantityDecreasedConsumer(
             pointUseService.use(
                 PointUseCommand(
                     requestId = requestId,
-                    userId = 1L,
+                    userId = event.userId,
                     amount = event.totalPrice,
                 )
-            )
-
-            pointUsedProducer.send(PointUsedEvent(orderId = event.orderId))
+            ) {
+                pointUsedProducer.send(PointUsedEvent(orderId = event.orderId))
+            }
         } catch (e: Exception) {
             pointUseService.cancel(PointUseCancelCommand(requestId = requestId))
 
