@@ -13,6 +13,7 @@ object KafkaConsumerGroups {
     const val QUANTITY_DECREASED_CONSUMER = "quantity-decreased-consumer"
     const val QUANTITY_DECREASED_FAIL_CONSUMER = "quantity-decreased-fail-consumer"
     const val POINT_USED_CONSUMER = "point-used-consumer"
+    const val POINT_USE_FAIL_CONSUMER = "point-use-fail-consumer"
 }
 
 object KafkaPartitionKeys {

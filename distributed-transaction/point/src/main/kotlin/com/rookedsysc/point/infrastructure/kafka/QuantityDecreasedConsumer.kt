@@ -2,11 +2,11 @@ package com.rookedsysc.point.infrastructure.kafka
 
 import com.rookedsysc.common.kafka.KafkaConsumerGroups
 import com.rookedsysc.common.kafka.KafkaTopics
+import com.rookedsysc.common.kafka.dto.PointUseFailEvent
 import com.rookedsysc.common.kafka.dto.PointUsedEvent
 import com.rookedsysc.point.application.PointUseService
 import com.rookedsysc.point.application.dto.PointUseCancelCommand
 import com.rookedsysc.point.application.dto.PointUseCommand
-import com.rookedsysc.point.infrastructure.kafka.dto.PointUseFailEvent
 import com.rookedsysc.point.infrastructure.kafka.dto.QuantityDecreasedEvent
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
