@@ -1,13 +1,17 @@
 package com.rookedsysc.order.infrastructure.`in`
 
-import com.rookedsysc.order.application.OrderChoreographyService
+import com.rookedsysc.order.application.OrderCoordinator
 import com.rookedsysc.order.application.OrderService
+import com.rookedsysc.order.application.dto.OrderProcessingResult
 import com.rookedsysc.order.application.dto.CreateOrderResult
 import com.rookedsysc.order.infrastructure.`in`.dto.CreateOrderRequest
 import com.rookedsysc.order.infrastructure.`in`.dto.CreateOrderResponse
+import com.rookedsysc.order.infrastructure.`in`.dto.OrderProcessingResultResponse
 import com.rookedsysc.order.infrastructure.`in`.dto.PlaceOrderRequest
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -18,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("orders")
 class OrderController(
     private val orderService: OrderService,
-    private val orderChoreographyService: OrderChoreographyService,
+    private val orderCoordinator: OrderCoordinator,
 ) {
 
     @Operation(summary = "주문 생성")
@@ -30,11 +34,20 @@ class OrderController(
         return CreateOrderResponse.of(result)
     }
 
+    @Operation(summary = "주문 처리 결과 조회")
+    @GetMapping("{orderId}/result")
+    fun getOrderProcessingResult(
+        @PathVariable orderId: Long,
+    ): OrderProcessingResultResponse {
+        val result: OrderProcessingResult = orderService.getOrderProcessingResult(orderId = orderId)
+        return OrderProcessingResultResponse.of(result)
+    }
+
     @Operation(summary = "주문 처리")
     @PostMapping("place")
     fun placeOrder(
         @RequestBody request: PlaceOrderRequest
     ) {
-        return orderChoreographyService.placeOrder(command = request.toCommand())
+        return orderCoordinator.placeOrder(command = request.toCommand())
     }
 }

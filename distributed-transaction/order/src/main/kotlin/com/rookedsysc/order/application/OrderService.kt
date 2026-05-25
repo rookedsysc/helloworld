@@ -3,6 +3,7 @@ package com.rookedsysc.order.application
 import com.rookedsysc.order.application.dto.CreateOrderCommand
 import com.rookedsysc.order.application.dto.CreateOrderResult
 import com.rookedsysc.order.application.dto.OrderDto
+import com.rookedsysc.order.application.dto.OrderProcessingResult
 import com.rookedsysc.order.entity.Order
 import com.rookedsysc.order.entity.OrderItem
 import com.rookedsysc.order.infrastructure.out.OrderItemRepository
@@ -45,6 +46,17 @@ class OrderService(
                     productId = item.productId, quantity = item.quantity
                 )
             }
+        )
+    }
+
+    fun getOrderProcessingResult(orderId: Long): OrderProcessingResult {
+        val order: Order = orderRepository.findById(orderId).orElseThrow {
+            RuntimeException("Order not found")
+        }
+
+        return OrderProcessingResult(
+            orderId = order.id,
+            status = order.status,
         )
     }
 
