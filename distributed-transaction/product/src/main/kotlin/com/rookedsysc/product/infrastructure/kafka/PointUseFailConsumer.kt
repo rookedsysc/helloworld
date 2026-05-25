@@ -8,11 +8,15 @@ import com.rookedsysc.product.application.BunchProductBuyService
 import com.rookedsysc.product.application.dto.BunchProductCancelCommand
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
+import org.springframework.transaction.support.TransactionSynchronization
+import org.springframework.transaction.support.TransactionSynchronizationManager
+import org.springframework.transaction.support.TransactionTemplate
 
 @Component
 class PointUseFailConsumer(
     private val productService: BunchProductBuyService,
     private val quantityDecreasedFailProducer: QuantityDecreasedFailProducer,
+    private val transactionTemplate: TransactionTemplate,
 ) {
     @KafkaListener(
         topics = [KafkaTopics.POINT_USE_FAIL],
@@ -24,10 +28,18 @@ class PointUseFailConsumer(
     fun handle(event: PointUseFailEvent) {
         val requestId = event.orderId.toString()
 
-        productService.cancel(BunchProductCancelCommand(requestId = requestId))
+        transactionTemplate.execute {
+            productService.cancel(BunchProductCancelCommand(requestId = requestId))
 
-        quantityDecreasedFailProducer.send(
-            QuantityDecreasedFailEvent(orderId = event.orderId)
-        )
+            TransactionSynchronizationManager.registerSynchronization(
+                object : TransactionSynchronization {
+                    override fun afterCommit() {
+                        quantityDecreasedFailProducer.send(
+                            QuantityDecreasedFailEvent(orderId = event.orderId)
+                        )
+                    }
+                }
+            )
+        }
     }
 }

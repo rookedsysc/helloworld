@@ -21,10 +21,7 @@ class BunchProductBuyService(
         key = "product:orchestration:{command.requestId}",
         fairLock = true
     )
-    fun buy(
-        command: BunchProductBuyCommand,
-        onSuccess: (BunchProductBuyResult) -> Unit = {},
-    ): BunchProductBuyResult {
+    fun buy(command: BunchProductBuyCommand): BunchProductBuyResult {
         productTransactionHistoryRepository.findAllByRequestIdAndTransactionType(
             requestId = command.requestId,
             transactionType = ProductTransactionHistory.TransactionType.PURCHASE
@@ -57,10 +54,7 @@ class BunchProductBuyService(
             )
         }
 
-        val result = BunchProductBuyResult(totalPrice = totalPrice)
-        onSuccess(result)
-
-        return result
+        return BunchProductBuyResult(totalPrice = totalPrice)
     }
 
     @DistributedLock(

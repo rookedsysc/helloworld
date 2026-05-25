@@ -6,10 +6,12 @@ import com.rookedsysc.common.kafka.dto.PointUsedEvent
 import com.rookedsysc.order.application.OrderService
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
+import org.springframework.transaction.support.TransactionTemplate
 
 @Component
 class PointUsedConsumer(
     private val orderService: OrderService,
+    private val transactionTemplate: TransactionTemplate,
 ) {
     @KafkaListener(
         topics = [KafkaTopics.POINT_USED],
@@ -19,6 +21,8 @@ class PointUsedConsumer(
         ],
     )
     fun handle(event: PointUsedEvent) {
-        orderService.complete(event.orderId)
+        transactionTemplate.execute {
+            orderService.complete(event.orderId)
+        }
     }
 }

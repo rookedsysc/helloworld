@@ -10,12 +10,16 @@ import com.rookedsysc.point.application.dto.PointUseCommand
 import com.rookedsysc.point.infrastructure.kafka.dto.QuantityDecreasedEvent
 import org.springframework.kafka.annotation.KafkaListener
 import org.springframework.stereotype.Component
+import org.springframework.transaction.support.TransactionSynchronization
+import org.springframework.transaction.support.TransactionSynchronizationManager
+import org.springframework.transaction.support.TransactionTemplate
 
 @Component
 class QuantityDecreasedConsumer(
     private val pointUseService: PointUseService,
     private val pointUsedProducer: PointUsedProducer,
     private val pointUseFailProducer: PointUseFailProducer,
+    private val transactionTemplate: TransactionTemplate,
 ) {
     @KafkaListener(
         topics = [KafkaTopics.QUANTITY_DECREASED],
@@ -28,19 +32,35 @@ class QuantityDecreasedConsumer(
         val requestId = event.orderId.toString()
 
         try {
-            pointUseService.use(
-                PointUseCommand(
-                    requestId = requestId,
-                    userId = event.userId,
-                    amount = event.totalPrice,
+            transactionTemplate.execute {
+                pointUseService.use(
+                    PointUseCommand(
+                        requestId = requestId,
+                        userId = event.userId,
+                        amount = event.totalPrice,
+                    )
                 )
-            ) {
-                pointUsedProducer.send(PointUsedEvent(orderId = event.orderId))
+
+                TransactionSynchronizationManager.registerSynchronization(
+                    object : TransactionSynchronization {
+                        override fun afterCommit() {
+                            pointUsedProducer.send(PointUsedEvent(orderId = event.orderId))
+                        }
+                    }
+                )
             }
         } catch (e: Exception) {
-            pointUseService.cancel(PointUseCancelCommand(requestId = requestId))
+            transactionTemplate.execute {
+                pointUseService.cancel(PointUseCancelCommand(requestId = requestId))
 
-            pointUseFailProducer.send(PointUseFailEvent(orderId = event.orderId))
+                TransactionSynchronizationManager.registerSynchronization(
+                    object : TransactionSynchronization {
+                        override fun afterCommit() {
+                            pointUseFailProducer.send(PointUseFailEvent(orderId = event.orderId))
+                        }
+                    }
+                )
+            }
         }
     }
 }

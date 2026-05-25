@@ -8,8 +8,6 @@ import com.rookedsysc.point.domain.PointTransactionHistory
 import com.rookedsysc.point.infrastructure.out.PointRepository
 import com.rookedsysc.point.infrastructure.out.PointTransactionHistoryRepository
 import org.springframework.stereotype.Service
-import org.springframework.transaction.support.TransactionSynchronization
-import org.springframework.transaction.support.TransactionSynchronizationManager
 
 @Service
 class PointUseService(
@@ -20,10 +18,7 @@ class PointUseService(
         key = "product:orchestration:{command.requestId}",
         fairLock = true
     )
-    fun use(
-        command: PointUseCommand,
-        afterCommit: () -> Unit = {},
-    ) {
+    fun use(command: PointUseCommand) {
         val pointTransactionHistory: PointTransactionHistory? =
             pointTransactionHistoryRepository.findByRequestIdAndTransactionType(
                 requestId = command.requestId,
@@ -45,8 +40,6 @@ class PointUseService(
                 transactionType = PointTransactionHistory.TransactionType.USE
             )
         )
-
-        registerAfterCommit(afterCommit)
     }
 
 
@@ -85,21 +78,6 @@ class PointUseService(
                 amount = useHistory.amount,
                 transactionType = PointTransactionHistory.TransactionType.CANCEL
             )
-        )
-    }
-
-    private fun registerAfterCommit(action: () -> Unit) {
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            action()
-            return
-        }
-
-        TransactionSynchronizationManager.registerSynchronization(
-            object : TransactionSynchronization {
-                override fun afterCommit() {
-                    action()
-                }
-            }
         )
     }
 }
