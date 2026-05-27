@@ -17,4 +17,12 @@ class ProductListService(
         val products: Page<Product> = productRepository.findAll(pageable)
         return products.map { product -> ProductListResult.from(product) }
     }
+
+    @Transactional
+    fun get(productId: Long): ProductListResult {
+        val product: Product = productRepository.findById(productId).orElseThrow {
+            RuntimeException("상품이 존재하지 않습니다.")
+        }
+        return ProductListResult.from(product)
+    }
 }
