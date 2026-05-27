@@ -17,4 +17,11 @@ class PointListService(
         val points: Page<Point> = pointRepository.findAll(pageable)
         return points.map { point -> PointListResult.from(point) }
     }
+
+    @Transactional
+    fun getByUserId(userId: Long): PointListResult {
+        val point: Point = pointRepository.findByUserId(userId)
+            ?: throw RuntimeException("존재하지 않는 User ID 입니다.")
+        return PointListResult.from(point)
+    }
 }

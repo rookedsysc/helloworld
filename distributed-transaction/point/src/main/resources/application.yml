@@ -9,13 +9,30 @@ spring:
     show-sql: true
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://192.168.36.161:23306/point_db
+    url: jdbc:mysql://localhost:23306/point_db
     username: root
     password: 1234
 
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        # Spring Kafka의 Java class type header를 메시지에 넣지 않는다.
+        spring.json.add.type.headers: false
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        # Type header를 신뢰하지 않고 listener target type/default type으로 역직렬화한다.
+        spring.json.use.type.headers: false
+        # JSON 역직렬화 허용 패키지다. 로컬 MVP라 전체 허용하지만 운영에서는 도메인 패키지로 좁힌다.
+        spring.json.trusted.packages: "*"
+
   data:
     redis:
-      host: 192.168.36.161
+      host: localhost
       port: 26379
       password: 1234
       timeout: 10000ms

@@ -38,5 +38,6 @@ class SingleProductBuyService(
             RuntimeException("상품이 존재하지 않습니다.")
         }
         product.cancel(command.quantity)
+        productRepository.save(product)
     }
 }

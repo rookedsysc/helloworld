@@ -31,6 +31,7 @@ class PointUseService(
             ?: let { throw RuntimeException("존재하지 않는 User ID 입니다.") }
 
         point.use(command.amount)
+        pointRepository.save(point)
         pointTransactionHistoryRepository.save(
             PointTransactionHistory(
                 requestId = command.requestId,
@@ -69,6 +70,7 @@ class PointUseService(
         val point = pointRepository.findById(useHistory.pointId).orElseThrow()
 
         point.cancel(useHistory.amount)
+        pointRepository.save(point)
         pointTransactionHistoryRepository.save(
             PointTransactionHistory(
                 requestId = command.requestId,
