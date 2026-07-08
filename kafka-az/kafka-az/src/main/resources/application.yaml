@@ -2,9 +2,9 @@ spring:
   application:
     name: kafka-az
   r2dbc:
-    url: ${SPRING_R2DBC_URL:r2dbc:postgresql://localhost:5432/kafka_az}
-    username: ${SPRING_R2DBC_USERNAME:kafka_az}
-    password: ${SPRING_R2DBC_PASSWORD:kafka_az}
+    url: r2dbc:postgresql://localhost:5432/kafka_az
+    username: kafka_az
+    password: kafka_az
   docker:
     compose:
       file: compose.yaml
