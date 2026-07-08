@@ -1,0 +1,8 @@
+spring:
+  docker:
+    compose:
+      enabled: false
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
