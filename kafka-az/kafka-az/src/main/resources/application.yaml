@@ -1,3 +1,20 @@
 spring:
   application:
     name: kafka-az
+  r2dbc:
+    url: ${SPRING_R2DBC_URL:r2dbc:postgresql://localhost:5432/kafka_az}
+    username: ${SPRING_R2DBC_USERNAME:kafka_az}
+    password: ${SPRING_R2DBC_PASSWORD:kafka_az}
+  docker:
+    compose:
+      file: compose.yaml
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
