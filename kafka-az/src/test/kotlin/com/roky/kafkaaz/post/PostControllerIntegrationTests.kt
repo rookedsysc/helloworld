@@ -46,6 +46,15 @@ class PostControllerIntegrationTests @Autowired constructor(
         assertEquals("First post", created["title"])
         assertEquals("Hello Kafka AZ", created["content"])
 
+        val createdPost = postRepository.findById(postId).block()
+
+        assertNotNull(createdPost)
+        val createdAt = assertNotNull(createdPost.createdAt)
+        val firstUpdatedAt = assertNotNull(createdPost.updatedAt)
+        assertTrue(!firstUpdatedAt.isBefore(createdAt))
+
+        Thread.sleep(50)
+
         webTestClient.get()
             .uri("/api/v1/posts")
             .exchange()
@@ -79,6 +88,15 @@ class PostControllerIntegrationTests @Autowired constructor(
             .jsonPath("$.id").isEqualTo(postId)
             .jsonPath("$.title").isEqualTo("Updated post")
             .jsonPath("$.content").isEqualTo("Updated content")
+
+        val updatedPost = postRepository.findById(postId).block()
+
+        assertNotNull(updatedPost)
+        assertEquals(createdAt, updatedPost.createdAt)
+        assertTrue(
+            assertNotNull(updatedPost.updatedAt).isAfter(firstUpdatedAt),
+            "updatedAt should be refreshed on post update"
+        )
 
         webTestClient.delete()
             .uri("/api/v1/posts/{id}", postId)
