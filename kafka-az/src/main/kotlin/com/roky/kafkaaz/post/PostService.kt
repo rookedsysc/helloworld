@@ -1,5 +1,12 @@
 package com.roky.kafkaaz.post
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.roky.kafkaaz.outbox.OutboxEvent
+import com.roky.kafkaaz.outbox.OutboxRepository
+import com.roky.kafkaaz.outbox.PostPublishedEvent
+import java.util.UUID
+import org.jooq.DSLContext
+import org.jooq.JSONB
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.web.server.ResponseStatusException
@@ -8,7 +15,10 @@ import reactor.core.publisher.Mono
 
 @Service
 class PostService(
-    private val postRepository: PostRepository
+    private val postRepository: PostRepository,
+    private val outboxRepository: OutboxRepository,
+    private val dslContext: DSLContext,
+    private val objectMapper: ObjectMapper
 ) {
 
     fun create(request: PostCreateRequest): Mono<PostResponse> {
@@ -17,7 +27,25 @@ class PostService(
             content = request.content
         )
 
-        return postRepository.create(post)
+        return Mono.from(
+            dslContext.transactionPublisher<Post> { configuration ->
+                postRepository.create(configuration.dsl(), post)
+                    .flatMap { savedPost ->
+                        val eventId = UUID.randomUUID()
+                        val event = PostPublishedEvent.from(savedPost, eventId)
+
+                        outboxRepository.create(
+                            configuration.dsl(),
+                            OutboxEvent(
+                                id = eventId,
+                                aggregateId = savedPost.id!!,
+                                eventType = PostPublishedEvent.TYPE,
+                                payload = JSONB.valueOf(objectMapper.writeValueAsString(event))
+                            )
+                        ).thenReturn(savedPost)
+                    }
+            }
+        )
             .map(PostResponse::from)
     }
 
