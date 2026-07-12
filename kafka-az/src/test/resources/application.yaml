@@ -1,0 +1,11 @@
+spring:
+  docker:
+    compose:
+      enabled: false
+  sql:
+    init:
+      mode: never
+
+outbox:
+  relay:
+    enabled: false
