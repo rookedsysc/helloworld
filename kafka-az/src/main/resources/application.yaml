@@ -28,3 +28,8 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+outbox:
+  relay:
+    enabled: true
+    delay-ms: 1000
