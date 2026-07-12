@@ -17,7 +17,7 @@ class PostService(
             content = request.content
         )
 
-        return postRepository.save(post)
+        return postRepository.create(post)
             .map(PostResponse::from)
     }
 
@@ -32,20 +32,15 @@ class PostService(
     }
 
     fun update(id: Long, request: PostUpdateRequest): Mono<PostResponse> {
-        return getPost(id)
-            .map {
-                it.update(
-                    title = request.title,
-                    content = request.content
-                )
-            }
-            .flatMap(postRepository::save)
+        return postRepository.update(id, request.title, request.content)
+            .switchIfEmpty(postNotFound(id))
             .map(PostResponse::from)
     }
 
     fun delete(id: Long): Mono<Void> {
-        return getPost(id)
-            .flatMap(postRepository::delete)
+        return postRepository.deleteById(id)
+            .switchIfEmpty(postNotFound(id))
+            .then()
     }
 
     private fun getPost(id: Long): Mono<Post> {
@@ -53,7 +48,7 @@ class PostService(
             .switchIfEmpty(postNotFound(id))
     }
 
-    private fun postNotFound(id: Long): Mono<Post> {
+    private fun <T : Any> postNotFound(id: Long): Mono<T> {
         return Mono.error(ResponseStatusException(HttpStatus.NOT_FOUND, "Post not found: $id"))
     }
 }

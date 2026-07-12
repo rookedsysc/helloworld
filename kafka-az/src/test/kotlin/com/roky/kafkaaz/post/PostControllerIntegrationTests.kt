@@ -4,6 +4,13 @@ import com.roky.kafkaaz.support.PostgreSQLTestContainerSupport
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import org.jooq.DSLContext
+import org.jooq.Field
+import org.jooq.Record
+import org.jooq.Table
+import org.jooq.impl.DSL.field
+import org.jooq.impl.DSL.name
+import org.jooq.impl.DSL.table
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -11,12 +18,15 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
+import reactor.core.publisher.Mono
+import reactor.core.publisher.Flux
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient
 class PostControllerIntegrationTests @Autowired constructor(
     private val webTestClient: WebTestClient,
-    private val postRepository: PostRepository
+    private val postRepository: PostRepository,
+    private val dslContext: DSLContext
 ) : PostgreSQLTestContainerSupport() {
 
     @BeforeEach
@@ -129,5 +139,39 @@ class PostControllerIntegrationTests @Autowired constructor(
             swaggerUiStatus.is2xxSuccessful || swaggerUiStatus.is3xxRedirection,
             "Swagger UI should be reachable but was $swaggerUiStatus"
         )
+    }
+
+    @Test
+    fun `rolls back jooq writes in a reactive transaction`() {
+        Flux.from(
+            dslContext.transactionPublisher<Void> { configuration ->
+                Flux.from(
+                    configuration.dsl().insertInto(POSTS)
+                        .set(TITLE, "First")
+                        .set(CONTENT, "First content")
+                        .returning(ID)
+                )
+                    .thenMany(
+                        Flux.from(
+                            configuration.dsl().insertInto(POSTS)
+                                .set(TITLE, "Second")
+                                .set(CONTENT, "Second content")
+                                .returning(ID)
+                        )
+                    )
+                    .then(Mono.error<Void>(IllegalStateException("rollback")))
+            }
+        )
+            .onErrorResume(IllegalStateException::class.java) { Mono.empty() }
+            .blockLast()
+
+        assertTrue(postRepository.findAllByOrderByIdDesc().collectList().block()!!.isEmpty())
+    }
+
+    private companion object {
+        private val POSTS: Table<Record> = table(name("posts"))
+        private val ID: Field<Long> = field(name("id"), Long::class.java)
+        private val TITLE: Field<String> = field(name("title"), String::class.java)
+        private val CONTENT: Field<String> = field(name("content"), String::class.java)
     }
 }
