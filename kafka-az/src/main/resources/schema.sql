@@ -24,14 +24,6 @@ ALTER TABLE posts
 ALTER TABLE posts
     ADD COLUMN IF NOT EXISTS member_id BIGINT REFERENCES members(id);
 
-DO $$
-BEGIN
-    CREATE TYPE outbox_event_type AS ENUM ('POST_PUBLISHED');
-EXCEPTION
-    WHEN duplicate_object THEN NULL;
-END
-$$;
-
 CREATE TABLE IF NOT EXISTS comments (
     id BIGSERIAL PRIMARY KEY,
     post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
@@ -54,16 +46,3 @@ CREATE TABLE IF NOT EXISTS notifications (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT notifications_recipient_comment_unique UNIQUE (recipient_member_id, comment_id)
 );
-
-CREATE TABLE IF NOT EXISTS outbox_events (
-    id UUID PRIMARY KEY,
-    aggregate_id BIGINT NOT NULL,
-    event_type outbox_event_type NOT NULL,
-    payload JSONB NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    published_at TIMESTAMP WITH TIME ZONE
-);
-
-CREATE INDEX IF NOT EXISTS outbox_events_pending_idx
-    ON outbox_events (created_at)
-    WHERE published_at IS NULL;

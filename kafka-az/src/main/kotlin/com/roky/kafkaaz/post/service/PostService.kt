@@ -1,17 +1,10 @@
 package com.roky.kafkaaz.post.service
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.roky.kafkaaz.outbox.domain.OutboxEvent
-import com.roky.kafkaaz.outbox.domain.PostPublishedEvent
-import com.roky.kafkaaz.outbox.repository.OutboxRepository
 import com.roky.kafkaaz.post.domain.Post
 import com.roky.kafkaaz.post.dto.PostCreateRequest
 import com.roky.kafkaaz.post.dto.PostResponse
 import com.roky.kafkaaz.post.dto.PostUpdateRequest
 import com.roky.kafkaaz.post.repository.PostRepository
-import java.util.UUID
-import org.jooq.DSLContext
-import org.jooq.JSONB
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.web.server.ResponseStatusException
@@ -20,10 +13,7 @@ import reactor.core.publisher.Mono
 
 @Service
 class PostService(
-    private val postRepository: PostRepository,
-    private val outboxRepository: OutboxRepository,
-    private val dslContext: DSLContext,
-    private val objectMapper: ObjectMapper
+    private val postRepository: PostRepository
 ) {
 
     fun create(memberId: Long, request: PostCreateRequest): Mono<PostResponse> {
@@ -33,25 +23,7 @@ class PostService(
             content = request.content
         )
 
-        return Mono.from(
-            dslContext.transactionPublisher<Post> { configuration ->
-                postRepository.create(configuration.dsl(), post)
-                    .flatMap { savedPost ->
-                        val eventId = UUID.randomUUID()
-                        val event = PostPublishedEvent.from(savedPost, eventId)
-
-                        outboxRepository.create(
-                            configuration.dsl(),
-                            OutboxEvent(
-                                id = eventId,
-                                aggregateId = savedPost.id!!,
-                                eventType = PostPublishedEvent.TYPE,
-                                payload = JSONB.valueOf(objectMapper.writeValueAsString(event))
-                            )
-                        ).thenReturn(savedPost)
-                    }
-            }
-        )
+        return postRepository.create(post)
             .map(PostResponse::from)
     }
 

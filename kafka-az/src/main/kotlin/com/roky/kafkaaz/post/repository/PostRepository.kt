@@ -21,12 +21,8 @@ class PostRepository(
 ) {
 
     fun create(post: Post): Mono<Post> {
-        return create(dslContext, post)
-    }
-
-    fun create(transactionDslContext: DSLContext, post: Post): Mono<Post> {
         return Mono.from(
-            transactionDslContext.insertInto(POSTS)
+            dslContext.insertInto(POSTS)
                 .set(MEMBER_ID, post.memberId)
                 .set(TITLE, post.title)
                 .set(CONTENT, post.content)
