@@ -6,6 +6,9 @@ data class PostResponse(
     @Schema(description = "게시물 ID", example = "1")
     val id: Long,
 
+    @Schema(description = "게시물 작성자 회원 ID", example = "10")
+    val memberId: Long,
+
     @Schema(description = "게시물 제목", example = "First post")
     val title: String,
 
@@ -16,6 +19,7 @@ data class PostResponse(
         fun from(post: Post): PostResponse {
             return PostResponse(
                 id = post.id ?: throw IllegalStateException("Post id must not be null"),
+                memberId = post.memberId,
                 title = post.title,
                 content = post.content
             )

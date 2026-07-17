@@ -31,13 +31,20 @@ class PostControllerIntegrationTests @Autowired constructor(
 
     @BeforeEach
     fun setUp() {
-        postRepository.deleteAll().block()
+        Mono.from(dslContext.deleteFrom(NOTIFICATIONS))
+            .then(Mono.from(dslContext.deleteFrom(COMMENTS)))
+            .then(postRepository.deleteAll())
+            .then(Mono.from(dslContext.deleteFrom(MEMBERS)))
+            .block()
     }
 
     @Test
     fun `creates reads updates and deletes a post`() {
+        val accessToken = login("post-owner")
+
         val created = webTestClient.post()
             .uri("/api/v1/posts")
+            .headers { it.setBearerAuth(accessToken) }
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(
                 mapOf(
@@ -53,6 +60,7 @@ class PostControllerIntegrationTests @Autowired constructor(
 
         assertNotNull(created)
         val postId = (created["id"] as Number).toLong()
+        val memberId = (created["memberId"] as Number).toLong()
         assertEquals("First post", created["title"])
         assertEquals("Hello Kafka AZ", created["content"])
 
@@ -73,6 +81,7 @@ class PostControllerIntegrationTests @Autowired constructor(
             .jsonPath("$[0].id").isEqualTo(postId)
             .jsonPath("$[0].title").isEqualTo("First post")
             .jsonPath("$[0].content").isEqualTo("Hello Kafka AZ")
+            .jsonPath("$[0].memberId").isEqualTo(memberId)
 
         webTestClient.get()
             .uri("/api/v1/posts/{id}", postId)
@@ -82,9 +91,11 @@ class PostControllerIntegrationTests @Autowired constructor(
             .jsonPath("$.id").isEqualTo(postId)
             .jsonPath("$.title").isEqualTo("First post")
             .jsonPath("$.content").isEqualTo("Hello Kafka AZ")
+            .jsonPath("$.memberId").isEqualTo(memberId)
 
         webTestClient.put()
             .uri("/api/v1/posts/{id}", postId)
+            .headers { it.setBearerAuth(accessToken) }
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(
                 mapOf(
@@ -110,6 +121,7 @@ class PostControllerIntegrationTests @Autowired constructor(
 
         webTestClient.delete()
             .uri("/api/v1/posts/{id}", postId)
+            .headers { it.setBearerAuth(accessToken) }
             .exchange()
             .expectStatus().isNoContent
 
@@ -117,6 +129,34 @@ class PostControllerIntegrationTests @Autowired constructor(
             .uri("/api/v1/posts/{id}", postId)
             .exchange()
             .expectStatus().isNotFound
+    }
+
+    @Test
+    fun `only the post owner can update or delete`() {
+        val ownerToken = login("owner")
+        val otherToken = login("other")
+        val postId = createPost(ownerToken, "Owner post", "Owner content")
+
+        webTestClient.put()
+            .uri("/api/v1/posts/{id}", postId)
+            .headers { it.setBearerAuth(otherToken) }
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(mapOf("title" to "Changed", "content" to "Changed"))
+            .exchange()
+            .expectStatus().isForbidden
+
+        webTestClient.delete()
+            .uri("/api/v1/posts/{id}", postId)
+            .headers { it.setBearerAuth(otherToken) }
+            .exchange()
+            .expectStatus().isForbidden
+
+        webTestClient.get()
+            .uri("/api/v1/posts/{id}", postId)
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.title").isEqualTo("Owner post")
     }
 
     @Test
@@ -128,6 +168,10 @@ class PostControllerIntegrationTests @Autowired constructor(
             .expectBody()
             .jsonPath("$.paths['/api/v1/posts']").exists()
             .jsonPath("$.paths['/api/v1/posts/{id}']").exists()
+            .jsonPath("$.paths['/api/v1/auth/login']").exists()
+            .jsonPath("$.paths['/api/v1/posts/{postId}/comments']").exists()
+            .jsonPath("$.components.securitySchemes.bearerAuth").exists()
+            .jsonPath("$.components.securitySchemes.bearerAuth.scheme").isEqualTo("bearer")
 
         val swaggerUiStatus = webTestClient.get()
             .uri("/swagger-ui.html")
@@ -143,10 +187,14 @@ class PostControllerIntegrationTests @Autowired constructor(
 
     @Test
     fun `rolls back jooq writes in a reactive transaction`() {
+        login("transaction-owner")
+        val memberId = Mono.from(dslContext.select(MEMBER_ID).from(MEMBERS)).map { it[MEMBER_ID]!! }.block()!!
+
         Flux.from(
             dslContext.transactionPublisher<Void> { configuration ->
                 Flux.from(
                     configuration.dsl().insertInto(POSTS)
+                        .set(POST_MEMBER_ID, memberId)
                         .set(TITLE, "First")
                         .set(CONTENT, "First content")
                         .returning(ID)
@@ -154,6 +202,7 @@ class PostControllerIntegrationTests @Autowired constructor(
                     .thenMany(
                         Flux.from(
                             configuration.dsl().insertInto(POSTS)
+                                .set(POST_MEMBER_ID, memberId)
                                 .set(TITLE, "Second")
                                 .set(CONTENT, "Second content")
                                 .returning(ID)
@@ -168,9 +217,45 @@ class PostControllerIntegrationTests @Autowired constructor(
         assertTrue(postRepository.findAllByOrderByIdDesc().collectList().block()!!.isEmpty())
     }
 
+    private fun login(id: String): String {
+        val response = webTestClient.post()
+            .uri("/api/v1/auth/login")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(mapOf("id" to id, "password" to "password123"))
+            .exchange()
+            .expectStatus().isOk
+            .expectBody(Map::class.java)
+            .returnResult()
+            .responseBody
+
+        assertNotNull(response)
+        return response["accessToken"] as String
+    }
+
+    private fun createPost(accessToken: String, title: String, content: String): Long {
+        val response = webTestClient.post()
+            .uri("/api/v1/posts")
+            .headers { it.setBearerAuth(accessToken) }
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(mapOf("title" to title, "content" to content))
+            .exchange()
+            .expectStatus().isCreated
+            .expectBody(Map::class.java)
+            .returnResult()
+            .responseBody
+
+        assertNotNull(response)
+        return (response["id"] as Number).toLong()
+    }
+
     private companion object {
         private val POSTS: Table<Record> = table(name("posts"))
+        private val MEMBERS: Table<Record> = table(name("members"))
+        private val COMMENTS: Table<Record> = table(name("comments"))
+        private val NOTIFICATIONS: Table<Record> = table(name("notifications"))
         private val ID: Field<Long> = field(name("id"), Long::class.java)
+        private val MEMBER_ID: Field<Long> = field(name("id"), Long::class.java)
+        private val POST_MEMBER_ID: Field<Long> = field(name("member_id"), Long::class.java)
         private val TITLE: Field<String> = field(name("title"), String::class.java)
         private val CONTENT: Field<String> = field(name("content"), String::class.java)
     }

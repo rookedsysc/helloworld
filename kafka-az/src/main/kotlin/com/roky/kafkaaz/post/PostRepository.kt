@@ -22,6 +22,7 @@ class PostRepository(
     fun create(post: Post): Mono<Post> {
         return Mono.from(
             dslContext.insertInto(POSTS)
+                .set(MEMBER_ID, post.memberId)
                 .set(TITLE, post.title)
                 .set(CONTENT, post.content)
                 .returning(*POST_FIELDS)
@@ -70,6 +71,7 @@ class PostRepository(
     private fun toPost(record: Record): Post {
         return Post(
             id = record[ID],
+            memberId = record[MEMBER_ID]!!,
             title = record[TITLE]!!,
             content = record[CONTENT]!!,
             createdAt = record[CREATED_AT]?.toInstant(),
@@ -80,10 +82,11 @@ class PostRepository(
     private companion object {
         private val POSTS: Table<Record> = table(name("posts"))
         private val ID: Field<Long> = field(name("id"), Long::class.java)
+        private val MEMBER_ID: Field<Long> = field(name("member_id"), Long::class.java)
         private val TITLE: Field<String> = field(name("title"), String::class.java)
         private val CONTENT: Field<String> = field(name("content"), String::class.java)
         private val CREATED_AT: Field<OffsetDateTime> = field(name("created_at"), OffsetDateTime::class.java)
         private val UPDATED_AT: Field<OffsetDateTime> = field(name("updated_at"), OffsetDateTime::class.java)
-        private val POST_FIELDS = arrayOf(ID, TITLE, CONTENT, CREATED_AT, UPDATED_AT)
+        private val POST_FIELDS = arrayOf(ID, MEMBER_ID, TITLE, CONTENT, CREATED_AT, UPDATED_AT)
     }
 }

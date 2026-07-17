@@ -28,3 +28,8 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+jwt:
+  issuer: kafka-az
+  secret: kafka-az-poc-secret-key-must-be-at-least-32-bytes
+  access-token-expiration-seconds: 3600

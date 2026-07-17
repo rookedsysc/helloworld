@@ -1,13 +1,12 @@
-package com.roky.kafkaaz.post
+package com.roky.kafkaaz.member
 
 import com.roky.kafkaaz.common.BaseEntity
 import java.time.Instant
 
-data class Post(
+data class Member(
     val id: Long? = null,
-    val memberId: Long,
-    val title: String,
-    val content: String,
+    val loginId: String,
+    val password: String,
     override val createdAt: Instant? = null,
     override val updatedAt: Instant? = null
 ) : BaseEntity(createdAt, updatedAt)
