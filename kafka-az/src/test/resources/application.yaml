@@ -4,10 +4,13 @@ spring:
       enabled: false
   sql:
     init:
-      mode: always
-      schema-locations: classpath:schema.sql
+      mode: never
 
 jwt:
   issuer: kafka-az-test
   secret: kafka-az-test-secret-key-must-be-at-least-32-bytes
   access-token-expiration-seconds: 3600
+
+outbox:
+  relay:
+    enabled: false

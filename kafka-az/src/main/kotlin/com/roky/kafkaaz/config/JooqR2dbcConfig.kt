@@ -1,5 +1,6 @@
 package com.roky.kafkaaz.config
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import io.r2dbc.spi.ConnectionFactory
 import org.jooq.DSLContext
 import org.jooq.SQLDialect
@@ -16,5 +17,10 @@ class JooqR2dbcConfig {
             connectionFactory,
             SQLDialect.POSTGRES
         )
+    }
+
+    @Bean
+    fun objectMapper(): ObjectMapper {
+        return ObjectMapper().findAndRegisterModules()
     }
 }
