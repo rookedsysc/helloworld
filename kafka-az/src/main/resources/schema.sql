@@ -1,22 +1,48 @@
-CREATE TABLE posts (
+CREATE TABLE IF NOT EXISTS members (
     id BIGSERIAL PRIMARY KEY,
+    login_id VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS posts (
+    id BIGSERIAL PRIMARY KEY,
+    member_id BIGINT NOT NULL REFERENCES members(id),
     title VARCHAR(100) NOT NULL,
     content TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TYPE outbox_event_type AS ENUM ('POST_PUBLISHED');
+ALTER TABLE posts
+    ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP;
 
-CREATE TABLE outbox_events (
-    id UUID PRIMARY KEY,
-    aggregate_id BIGINT NOT NULL,
-    event_type outbox_event_type NOT NULL,
-    payload JSONB NOT NULL,
+ALTER TABLE posts
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE posts
+    ADD COLUMN IF NOT EXISTS member_id BIGINT REFERENCES members(id);
+
+CREATE TABLE IF NOT EXISTS comments (
+    id BIGSERIAL PRIMARY KEY,
+    post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    member_id BIGINT NOT NULL REFERENCES members(id),
+    content VARCHAR(1000) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    published_at TIMESTAMP WITH TIME ZONE
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX outbox_events_pending_idx
-    ON outbox_events (created_at)
-    WHERE published_at IS NULL;
+CREATE INDEX IF NOT EXISTS comments_post_created_idx
+    ON comments (post_id, created_at, id);
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id BIGSERIAL PRIMARY KEY,
+    recipient_member_id BIGINT NOT NULL REFERENCES members(id),
+    actor_member_id BIGINT NOT NULL REFERENCES members(id),
+    post_id BIGINT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+    comment_id BIGINT NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
+    content VARCHAR(1000) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT notifications_recipient_comment_unique UNIQUE (recipient_member_id, comment_id)
+);

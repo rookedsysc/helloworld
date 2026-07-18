@@ -14,7 +14,6 @@ abstract class PostgreSQLTestContainerSupport {
             .withDatabaseName(DATABASE_NAME)
             .withUsername("kafka_az")
             .withPassword("kafka_az")
-            .withInitScript("schema.sql")
 
         init {
             postgres.start()

@@ -29,7 +29,7 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
-outbox:
-  relay:
-    enabled: true
-    delay-ms: 1000
+jwt:
+  issuer: kafka-az
+  secret: kafka-az-poc-secret-key-must-be-at-least-32-bytes
+  access-token-expiration-seconds: 3600
