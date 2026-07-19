@@ -62,6 +62,24 @@ services:
     ports:
       - "8081:8080"
 
+  frontend:
+    build:
+      context: ./frontend
+    container_name: kafka-az-frontend
+    environment:
+      HOSTNAME: 0.0.0.0
+      PORT: 4193
+      BACKEND_API_URL: ${BACKEND_API_URL:-http://host.docker.internal:8080/api}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "4193:4193"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4193').then(response => { if (!response.ok) process.exit(1) }).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   kafka_az_postgres_data:
   kafka_az_zookeeper_data:
