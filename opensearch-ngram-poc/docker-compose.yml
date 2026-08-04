@@ -1,0 +1,64 @@
+# MySQL ngram(1)과 OpenSearch 1-gram의 1글자 검색 성능을 같은 조건에서 비교하기 위한 구성.
+# 가용 RAM 7.3GB 환경을 전제로 두 엔진에 각각 2G씩 배분하고 나머지를 OS page cache로 남긴다.
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: ngram-poc-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: 12345678
+      MYSQL_DATABASE: novel_search
+    # 버퍼풀은 벤치마크 기본값이 2G다. 소규모 동작 검증에서는 MYSQL_BUFFER_POOL로 낮춰 띄운다.
+    command: ["--innodb-buffer-pool-size=${MYSQL_BUFFER_POOL:-2G}"]
+    # ngram_token_size는 서버 재시작과 FULLTEXT 인덱스 재생성을 요구하므로 최초 기동부터 주입한다.
+    volumes:
+      - ./infra/mysql/conf/my.cnf:/etc/mysql/conf.d/ngram.cnf:ro
+      - mysql-data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p12345678"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+
+  opensearch:
+    image: opensearchproject/opensearch:2.19.1
+    container_name: ngram-poc-opensearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      # 힙 메모리 잠금은 스와핑을 막아 측정 재현성을 높이지만 호스트가 memlock 한도를
+      # 무제한으로 허용해야 한다. 비특권 컨테이너 환경에서는 기동 자체가 실패하므로 끈다.
+      # 호스트가 허용한다면 true로 바꾸고 아래 ulimits에 memlock을 추가하는 편이 낫다.
+      - bootstrap.memory_lock=false
+      # 힙은 벤치마크 기본값이 2g다. 소규모 동작 검증에서는 OPENSEARCH_HEAP로 낮춰 띄운다.
+      - OPENSEARCH_JAVA_OPTS=-Xms${OPENSEARCH_HEAP:-2g} -Xmx${OPENSEARCH_HEAP:-2g}
+      # PoC 로컬 벤치마크이므로 TLS/인증 플러그인을 끄고 순수 검색 성능만 측정한다.
+      - DISABLE_SECURITY_PLUGIN=true
+      - DISABLE_INSTALL_DEMO_CONFIG=true
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+    ports:
+      - "9200:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+
+volumes:
+  mysql-data:
+  opensearch-data:
