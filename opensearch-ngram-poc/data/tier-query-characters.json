@@ -1,0 +1,20 @@
+{
+ "common": {
+  "characters": ["다", "이", "는", "었", "지"],
+  "targetDocumentRatio": 1.0,
+  "origin": "natural",
+  "note": "말뭉치 자연 최빈 5음절. 7500자 문서에 151~398회 등장해 포함률이 100%에 수렴하므로 주입하지 않는다."
+ },
+ "medium": {
+  "characters": ["촉", "뗀", "찜", "솜", "믄"],
+  "targetDocumentRatio": 0.1,
+  "origin": "injected",
+  "note": "말뭉치 희귀 음절(2회 이하). 본문 풀에서 배제한 뒤 문서의 정확히 10%에 주입한다."
+ },
+ "rare": {
+  "characters": ["냬", "킼", "휙", "빽", "쩝"],
+  "targetDocumentRatio": 0.001,
+  "origin": "injected",
+  "note": "말뭉치 희귀 음절(2회 이하). 본문 풀에서 배제한 뒤 문서의 정확히 0.1%에 주입한다."
+ }
+}
