@@ -9,7 +9,14 @@ const RESULT_SIZE = __ENV.RESULT_SIZE || '20';
 
 // 계층별 질의 문자 5종. 같은 글자만 반복하면 버퍼풀과 Lucene 캐시가 완전히 데워져
 // 실제보다 빠른 수치가 나오므로 매 요청마다 무작위로 고른다.
-const QUERY_CHARACTERS = JSON.parse(__ENV.QUERY_CHARACTERS);
+// data/tier-query-characters.json의 characters를 옮겨 적은 사본이다. 생성기와 동등성
+// 게이트는 그 JSON을 계속 단일 출처로 읽으므로, 한쪽을 바꾸면 다른 쪽도 같이 바꾼다.
+const TIER_QUERY_CHARACTERS = {
+  common: ['다', '이', '는', '었', '지'],
+  medium: ['촉', '뗀', '찜', '솜', '믄'],
+  rare: ['냬', '킼', '휙', '빽', '쩝'],
+};
+const QUERY_CHARACTERS = TIER_QUERY_CHARACTERS[TIER];
 
 // 계층마다 쿼리 비용이 10~100배 차이나므로 도착률 램프를 따로 잡는다.
 const RAMP_TARGETS = {
