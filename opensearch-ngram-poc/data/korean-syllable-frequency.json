@@ -1,5 +1,5 @@
 {
- "sourceDescription": "fanplus 팬픽 산문 3개 테이블에서 추출한 음절 빈도 집계",
+ "sourceDescription": "프로젝트 소설 산문 3개 테이블에서 추출한 음절 빈도 집계",
  "totalSyllables": 895466,
  "distinctSyllables": 1482,
  "spaceRatio": 0.252089,

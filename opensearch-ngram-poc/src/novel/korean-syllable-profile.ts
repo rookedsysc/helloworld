@@ -11,7 +11,7 @@ interface SyllableFrequencyFile {
 const SYLLABLE_FREQUENCY_PATH = join(__dirname, '..', '..', 'data', 'korean-syllable-frequency.json');
 
 /**
- * 실제 팬픽 산문에서 추출한 음절 빈도로 가중 샘플링을 제공한다.
+ * 프로젝트의 실제 소설 산문에서 추출한 음절 빈도로 가중 샘플링을 제공한다.
  *
  * 균등 분포로 본문을 만들면 모든 posting list 길이가 같아져 비현실적이다.
  * 실제 한국어는 Zipf 분포라(최빈 '다' 5.31%) 이 편중이 MySQL FTS aux table과

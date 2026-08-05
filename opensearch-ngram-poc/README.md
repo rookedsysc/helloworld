@@ -24,7 +24,7 @@
 
 ### 1글자 검색은 선택도가 사실상 0이다
 
-실제 팬픽 산문 895,466자에서 음절 분포를 뽑은 결과, **고유 음절은 1,482종**이고 분포는 강한 Zipf 형태다.
+프로젝트의 실제 소설 산문 895,466자에서 음절 분포를 뽑은 결과, **고유 음절은 1,482종**이고 분포는 강한 Zipf 형태다.
 
 | 음절 | 코퍼스 내 비중 | 7,500자 문서당 기대 출현 |
 | --- | --- | --- |
@@ -44,11 +44,13 @@
 | `MEDIUM` | 촉 뗀 찜 솜 믄 | 10% | 본문 풀에서 배제 후 결정적 주입 |
 | `RARE` | 냬 킼 휙 빽 쩝 | 0.1% | 본문 풀에서 배제 후 결정적 주입 |
 
+이 문자들은 본문 생성기와 동등성 게이트가 읽는 `data/tier-query-characters.json`, 그리고 k6 스크립트 `k6/single-char-search.js`의 `TIER_QUERY_CHARACTERS` 상수 두 곳에 적혀 있다. k6는 컨테이너에 stdin으로 스크립트만 넘겨 실행하므로 JSON을 읽을 수 없어 값을 직접 들고 있으니, 문자를 바꿀 때는 두 곳을 함께 고친다.
+
 마커는 코퍼스 희귀 음절(출현 2회 이하)에서 골라 풀에서 빼도 분포가 거의 왜곡되지 않게 했다. 계층당 5종을 두는 이유는 캐시 오염 방지다 — 같은 글자만 수천 번 쏘면 버퍼풀과 Lucene 캐시가 완전히 데워져 실제보다 빠른 수치가 나온다.
 
 ### 데이터는 왜 합성인가
 
-`fanplus_dump.sql`(231MB, 387 테이블)을 조사했으나 **덤프 전체 한글이 1,530,605자**로, 필요량(10만건 × 7,500자 = 7.5억 자)의 **0.20%**에 불과했다. 실제 소설 산문은 895,466자로 문서 204건 분량이다. 따라서 덤프는 **음절 빈도 프로파일 추출에만** 사용하고 본문은 그 분포를 따라 합성한다.
+프로젝트 DB 덤프(231MB, 387 테이블)를 조사했으나 **덤프 전체 한글이 1,530,605자**로, 필요량(10만건 × 7,500자 = 7.5억 자)의 **0.20%**에 불과했다. 실제 소설 산문은 895,466자로 문서 204건 분량이다. 따라서 덤프는 **음절 빈도 프로파일 추출에만** 사용하고 본문은 그 분포를 따라 합성한다.
 
 집계 통계(`data/korean-syllable-frequency.json`, 20KB)만 저장하며 원문 문장이나 사용자 식별자는 저장하지 않는다. 실제 문장을 문서에 채우지 않는 이유는 895k자를 7.5억 자까지 채우려면 838회 반복해야 하는데, 1-gram 색인은 문서별 문자 다중집합만 보므로 실제 문장 연결과 빈도 샘플링의 색인 특성이 사실상 같기 때문이다.
 
@@ -77,13 +79,7 @@ npm run build   # exit 0
 npm test        # 생성기 계약 4종
 ```
 
-### 2. 음절 빈도 프로파일 (이미 커밋되어 있으므로 보통 생략)
-
-```bash
-python3 scripts/extract-syllable-frequency.py <덤프경로> data/korean-syllable-frequency.json
-```
-
-### 3. 컨테이너 기동
+### 2. 컨테이너 기동
 
 ```bash
 docker compose up -d
@@ -92,7 +88,7 @@ docker compose exec mysql mysql -uroot -p12345678 -e "SHOW VARIABLES LIKE 'ngram
 curl -s localhost:9200/_cluster/health | grep status
 ```
 
-### 4. 적재
+### 3. 적재
 
 먼저 **소규모 프로브로 처리율을 재고** 본적재 소요시간을 역산한다. 이 단계를 건너뛰면 수 시간짜리 적재가 막판에 실패할 수 있다.
 
@@ -109,7 +105,7 @@ npm run load -- opensearch   # 벌크 적재 후 forcemerge
 
 100만건으로 올리려면 `DOC_COUNT=1000000`만 바꾸면 된다. 다만 원문만 22.5GB, 색인 포함 130GB 이상이고 이 문서 작성 시점 하드웨어 기준 10~20시간이 예상된다.
 
-### 5. 엔진 동등성 검증 (게이트)
+### 4. 엔진 동등성 검증 (게이트)
 
 ```bash
 npm run parity
@@ -117,7 +113,7 @@ npm run parity
 
 15개 질의 문자 각각에 대해 두 엔진의 매칭 문서 수를 비교한다. 오차 1%를 넘으면 종료 코드 1로 실패하며, **이 경우 부하테스트를 진행하지 않는다.**
 
-### 6. 부하테스트
+### 5. 부하테스트
 
 ```bash
 npm run start &
@@ -143,7 +139,7 @@ bash scripts/run-load-test.sh
 
 결과는 `k6/results/{engine}-{tier}-{phase}.json`에 저장되고 비교표가 출력된다. 표본이 1,000건 미만이면 p99를 `표본부족`으로 표기하며 통계로 포장하지 않는다.
 
-### 7. API 확인
+### 6. API 확인
 
 ```bash
 curl "localhost:3000/search?engine=mysql&q=다&size=5"
@@ -187,7 +183,7 @@ WARMUP_DURATION=2s STAGE_DURATION=3s BASELINE_ITERATIONS=20 COOLDOWN_SECONDS=2 \
 
 ## 측정 결과
 
-> 미측정. 아래 표는 6번 단계 실행 후 채운다.
+> 미측정. 아래 표는 5번 단계 실행 후 채운다.
 
 | 엔진 | 계층 | 단계 | 표본 | RPS | p50 | p95 | p99 | 실패율 | 판정 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -207,7 +203,7 @@ WARMUP_DURATION=2s STAGE_DURATION=3s BASELINE_ITERATIONS=20 COOLDOWN_SECONDS=2 \
 
 다른 워크로드(java 3개 약 3.9GB, 기타 프로세스 다수)가 동시에 돌면서 계획이 전제한 4.5GB를 확보할 수 없었다. 이 상태로 컨테이너를 띄우면 스왑으로 밀려나 **측정되는 값이 엔진 특성이 아니라 스왑 대기 시간**이 되므로 벤치마크가 무효가 된다. 참고로 이 시점에 평소 10초 걸리던 TypeScript 컴파일이 5분을 넘겼다.
 
-자원이 확보되면 위 실행 절차 3번부터 그대로 재개하면 된다. 코드와 설정은 모두 완성·검증되어 있다.
+자원이 확보되면 위 실행 절차 2번부터 그대로 재개하면 된다. 코드와 설정은 모두 완성·검증되어 있다.
 
 ---
 
@@ -218,18 +214,17 @@ opensearch-ngram-poc/
 ├── docker-compose.yml                    # mysql:8.4, opensearchproject/opensearch:2.19.1
 ├── infra/mysql/conf/my.cnf               # ngram_token_size=1 등
 ├── data/
-│   ├── korean-syllable-frequency.json    # 덤프 파생 집계 통계 (원문 없음)
-│   └── tier-query-characters.json        # 계층별 질의 문자 단일 출처
+│   ├── korean-syllable-frequency.json    # 프로젝트 덤프 파생 집계 통계 (원문 없음)
+│   └── tier-query-characters.json        # 계층별 질의 문자 (생성기·동등성 게이트용)
 ├── src/
 │   ├── novel/                            # 음절 프로파일, 본문 생성기, 선택도 계층
 │   ├── search/                           # 검색 API, 두 엔진 Repository
 │   └── loader/                           # 적재 CLI
 ├── scripts/
-│   ├── extract-syllable-frequency.py     # 덤프 → 빈도 JSON
 │   ├── verify-engine-parity.ts           # 동등성 게이트
 │   ├── run-load-test.sh                  # 12회 조합 실행
 │   └── summarize-load-test.py            # 결과 JSON → 비교표
-└── k6/single-char-search.js
+└── k6/single-char-search.js             # 계층별 질의 문자 사본을 직접 들고 있다
 ```
 
 본문 생성기는 시드와 문서 인덱스로 완전히 결정적이라, 두 엔진에 각각 적재해도 같은 본문이 들어간다. 덕분에 10만건(2.25GB)을 메모리에 올리지 않고 배치마다 생성할 수 있다.
