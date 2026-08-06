@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json",
+  // 루트 tsconfig는 scripts/도 타입체크 대상으로 담지만, 앱 빌드에까지 포함하면
+  // 공통 루트가 프로젝트 최상단으로 올라가 dist/src/main.js로 나온다. npm start는
+  // dist/main.js를 실행하므로 앱 빌드는 src/만 뿌리로 잡는다.
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.spec.ts"]
+}
