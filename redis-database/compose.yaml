@@ -1,0 +1,9 @@
+services:
+  redis:
+    image: redis:7.4-alpine
+    healthcheck:
+      # 로컬 PoC 시작 실패를 10초 안에 드러내기 위한 짧은 readiness 간격입니다.
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+      timeout: 1s
+      retries: 10
