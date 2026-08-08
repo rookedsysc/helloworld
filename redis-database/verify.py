@@ -1,3 +1,8 @@
+# /// script
+# requires-python = ">=3.10"
+# dependencies = []
+# ///
+
 import subprocess
 from pathlib import Path
 

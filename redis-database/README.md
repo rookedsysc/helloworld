@@ -4,14 +4,14 @@ Redis의 `DB 0`, `DB 1`은 독립 서버가 아니라 하나의 Redis 인스턴�
 
 ## 가장 빠르게 확인하기
 
-Python 3, Docker와 Docker Compose가 필요합니다. 검증 코드는 Python 표준 라이브러리만 사용하므로 별도 패키지를 설치하지 않습니다.
+`uv`, Docker와 Docker Compose가 필요합니다. 검증 코드는 Python 표준 라이브러리만 사용하므로 별도 패키지를 설치하지 않습니다.
 
 ```bash
 cd redis-database
-uv run python verify.py
+uv run verify.py
 ```
 
-`uv`가 없다면 `python3 verify.py`로 실행해도 됩니다. Python 코드는 Redis 명령별 검증 함수를 위에서 아래로 호출하므로 README의 학습 순서와 동일하게 읽을 수 있습니다.
+`uv`는 `verify.py`의 인라인 메타데이터를 읽어 Python 3.10 이상을 선택합니다. Python 코드는 Redis 명령별 검증 함수를 위에서 아래로 호출하므로 README의 학습 순서와 동일하게 읽을 수 있습니다.
 
 성공하면 다음과 같은 결과가 출력됩니다.
 
