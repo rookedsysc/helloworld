@@ -13,6 +13,24 @@ spring:
     username: root
     password: 1234
 
+  data:
+    redis:
+      host: 192.168.36.161
+      port: 26379
+      password: 1234
+      timeout: 10000ms
+      lettuce:
+        pool:
+          max-active: 10
+          max-idle: 10
+          min-idle: 5
+          max-wait: -1ms
+
+logging:
+  level:
+    com.rookedsysc.monolithic.config.lock: DEBUG
+    org.redisson: INFO
+
 management:
   endpoints:
     web:

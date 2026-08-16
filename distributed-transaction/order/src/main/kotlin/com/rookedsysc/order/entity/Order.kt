@@ -1,12 +1,6 @@
 package com.rookedsysc.order.entity
 
-import jakarta.persistence.Entity
-import jakarta.persistence.EnumType
-import jakarta.persistence.Enumerated
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.GenerationType
-import jakarta.persistence.Id
-import jakarta.persistence.Table
+import jakarta.persistence.*
 
 @Entity
 @Table(name = "orders")
@@ -15,11 +9,30 @@ class Order(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long = 0L,
 
+    var userId: Long,
+
     @Enumerated(EnumType.STRING)
     var status: OrderStatus = OrderStatus.CREATED
 ) {
 
-    fun complete() {
-        this.status = OrderStatus.COMPLETED
+
+    fun request() {
+        if (status != OrderStatus.CREATED) {
+            throw RuntimeException("잘못된 요청입니다.")
+        }
+
+        status = OrderStatus.REQUESTED
     }
+
+    fun complete() {
+        status = OrderStatus.COMPLETED
+    }
+
+    fun fail() {
+        if (status != OrderStatus.REQUESTED) {
+            throw RuntimeException("잘못된 요청입니다.")
+        }
+        status = OrderStatus.FAILED
+    }
+
 }

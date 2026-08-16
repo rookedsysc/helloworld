@@ -1,4 +1,4 @@
-package com.rookedsysc.point.entity
+package com.rookedsysc.point.domain
 
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
@@ -26,5 +26,9 @@ class Point(
             throw RuntimeException("포인트가 부족합니다.")
         }
         this.amount -= amount
+    }
+
+    fun cancel(amount: Long) {
+        this.amount += amount
     }
 }

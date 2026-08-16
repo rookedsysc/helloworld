@@ -19,12 +19,6 @@ class Product(
 ) {
 
     fun calculatePrice(quantity: Long): Long {
-        if (this.quantity < quantity) {
-            throw RuntimeException("재고가 부족합니다.")
-        }
-        if (this.quantity < 1) {
-            throw RuntimeException("0개 이하로 구매할 수 없습니다.")
-        }
         return this.price * quantity
     }
 
@@ -33,5 +27,9 @@ class Product(
             throw RuntimeException("재고가 부족합니다.")
         }
         this.quantity -= quantity
+    }
+
+    fun cancel(quantity: Long) {
+        this.quantity += quantity
     }
 }
