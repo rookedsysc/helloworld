@@ -97,8 +97,11 @@ class ProductReservationService(
     fun cancelReserve(command: ProductReserveCancelCommand) {
         val reservations: List<ProductReservation> = productReservationRepository.findAllByRequestId(command.requestId)
 
+        // Try가 재고를 선점하기 전에 실패하면 예약 자체가 남지 않는다. 이때 도착하는 Cancel은 되돌릴 것이 없는 정상 보상이므로
+        // 예외를 던지면 호출자의 보상 흐름이 끊긴다. 취소할 대상이 없는 상태도 취소가 끝난 상태와 같게 취급한다.
         if (reservations.isEmpty()) {
-            throw RuntimeException("예약 정보가 존재하지 않습니다. requestId=${command.requestId}")
+            println("취소할 예약이 존재하지 않습니다. requestId=${command.requestId}")
+            return
         }
 
         var alreadyCancelled: Boolean = reservations.any { it.status == ProductReservationStatus.CANCELED }
