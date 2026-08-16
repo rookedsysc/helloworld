@@ -1,4 +1,4 @@
-package com.rookedsysc.order.entity
+package com.rookedsysc.order.domain
 
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
