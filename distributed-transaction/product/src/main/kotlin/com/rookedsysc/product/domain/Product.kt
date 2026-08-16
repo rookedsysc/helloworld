@@ -57,7 +57,7 @@ class Product(
      * throws RuntimeException 재고 부족 시
      */
     fun reserve(requestedQuantity: Long): Long {
-        val reservableQuantity = this.quantity + this.reservedQuantity
+        val reservableQuantity = this.quantity - this.reservedQuantity
         if (reservableQuantity < requestedQuantity) {
             throw RuntimeException("재고가 부족합니다.")
         }
