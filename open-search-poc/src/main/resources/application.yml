@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: open-search-poc
+
+server:
+  port: 8080
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
