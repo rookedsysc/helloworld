@@ -1,0 +1,14 @@
+services:
+  nest-db:
+    image: mysql:latest
+    container_name: nest-db
+    environment:
+      MYSQL_ROOT_PASSWORD: 1234
+    ports:
+      - "43306:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./infra/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  db-data:

@@ -1,0 +1,78 @@
+import { Body, Controller, Delete, Get, Post, Query } from '@nestjs/common';
+import {
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
+import { TestService } from '../service/test.service';
+import { CreateTestRequest } from '../dto/create-test.request';
+import { CreateTestResponse } from '../dto/create-test.response';
+import { PageRequest } from 'src/common/model/page.request';
+import { TestListResponse } from '../dto/test-list.response';
+import { TestDetailResponse } from '../dto/test-detail.response';
+import { TestUpdateRequest } from '../dto/test-update.request';
+
+@ApiTags('prisma 학습용 테스트 컨트롤러')
+@Controller('open-api/test')
+export class TestController {
+  constructor(private readonly testService: TestService) {}
+
+  @ApiOperation({ summary: '테스트 목록 조회' })
+  @ApiOkResponse({
+    description: '테스트 목록 조회 성공',
+    type: [TestListResponse],
+  })
+  @Get()
+  async getTestList(
+    @Query() request: PageRequest,
+  ): Promise<TestListResponse[]> {
+    return await this.testService.getTestList(request);
+  }
+
+  @ApiOperation({ summary: '테스트 상세 조회' })
+  @ApiOkResponse({
+    description: '테스트 상세 조회 성공',
+    type: TestDetailResponse,
+  })
+  @ApiNotFoundResponse({ description: '해당 ID의 테스트를 찾을 수 없습니다' })
+  @Get(':id')
+  async getTest(@Query('id') id: number): Promise<TestDetailResponse> {
+    return await this.testService.getTestById(id);
+  }
+
+  @ApiOperation({ summary: '테스트 데이터 생성' })
+  @ApiOkResponse({
+    description: '테스트 데이터 생성 성공',
+    type: CreateTestResponse,
+  })
+  @Post()
+  async createTest(
+    @Body() request: CreateTestRequest,
+  ): Promise<CreateTestResponse> {
+    return await this.testService.createTest(request);
+  }
+
+  @ApiOperation({ summary: '테스트 데이터 수정' })
+  @ApiOkResponse({
+    description: '테스트 데이터 수정 성공',
+  })
+  @ApiNotFoundResponse({ description: '해당 ID의 테스트를 찾을 수 없습니다' })
+  @Post(':id')
+  async updateTest(
+    @Query('id') id: number,
+    @Body() request: TestUpdateRequest,
+  ): Promise<void> {
+    await this.testService.updateTest(id, request);
+  }
+
+  @ApiOperation({ summary: '테스트 데이터 삭제' })
+  @ApiOkResponse({
+    description: '테스트 데이터 삭제 성공',
+  })
+  @ApiNotFoundResponse({ description: '해당 ID의 테스트를 찾을 수 없습니다' })
+  @Delete(':id')
+  async deleteTest(@Query('id') id: number): Promise<void> {
+    await this.testService.deleteTest(id);
+  }
+}
